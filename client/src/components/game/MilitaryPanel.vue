@@ -15,16 +15,29 @@
       </div>
       <div class="section"><h4>Armies</h4>
         <div v-if="armies.length" class="army-list">
-          <div v-for="army in armies" :key="army.id" class="army-card">
-            <div class="army-header"><strong>{{ army.name }}</strong><span class="morale">Morale: {{ (army.morale * 100).toFixed(0) }}%</span></div>
+          <div v-for="army in armies" :key="army.id" class="army-card"
+               :class="{ selected: game.selectedArmyId === army.id }">
+            <div class="army-header">
+              <strong>{{ army.name }}</strong>
+              <span class="morale">Morale: {{ (army.morale * 100).toFixed(0) }}%</span>
+            </div>
             <div class="army-stats">
               <span>⚔️ {{ army.levies }} levies</span>
-              <span>{{ army.isRaised ? '🚩 Raised' : '🏠 Garrisoned' }}</span>
+              <span v-if="army.isRaised && army.isMoving" class="moving">🏃 Moving</span>
+              <span v-else-if="army.isRaised && army.isSieging" class="sieging">🏰 Siege {{ army.siegeProgress?.toFixed(0) || 0 }}%</span>
+              <span v-else-if="army.isRaised" class="raised">🚩 Raised</span>
+              <span v-else>🏠 Garrisoned</span>
             </div>
             <div class="maa-list" v-if="army.menAtArms?.length">
               <div v-for="maa in army.menAtArms" :key="maa.type" class="maa-item">
                 <span>{{ maa.type }}</span><span>{{ maa.count }}/{{ maa.maxCount }}</span>
               </div>
+            </div>
+            <div class="army-cmd" v-if="isPlayerChar && army.isRaised">
+              <button class="cmd-btn" @click="startMoveArmy(army.id)"
+                      :disabled="game.armyMoveMode">
+                🗺️ Move Army
+              </button>
             </div>
           </div>
         </div>
@@ -73,22 +86,33 @@ function getCharName(id) {
 
 function raiseArmy() { mp.raiseArmy(); }
 function disbandArmy() { mp.disbandArmy(); }
+function startMoveArmy(armyId) { game.selectArmy(armyId); }
 </script>
 
 <style scoped>
 .panel-content { padding: var(--gap-md); }
+.panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--gap-md); }
+.panel-header h3 { margin: 0; }
 .section { margin-bottom: var(--gap-lg); }
 .section h4 { font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--gap-sm); border-bottom: 1px solid var(--border-color); padding-bottom: 4px; }
 .army-card, .war-card { background: var(--bg-hover); border-radius: var(--border-radius); padding: var(--gap-sm) var(--gap-md); margin-bottom: var(--gap-sm); }
+.army-card.selected { border: 1px solid var(--gold-primary); box-shadow: 0 0 8px var(--gold-glow); }
 .army-header { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px; }
 .morale { color: var(--text-secondary); font-size: 0.75rem; }
 .army-stats { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary); }
+.army-stats .moving { color: #64b5f6; }
+.army-stats .sieging { color: #ff9800; }
+.army-stats .raised { color: #81c784; }
 .maa-list { margin-top: 4px; border-top: 1px solid var(--border-color); padding-top: 4px; }
 .maa-item { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); text-transform: capitalize; padding: 1px 0; }
 .army-actions { display: flex; gap: var(--gap-sm); margin-bottom: var(--gap-sm); }
 .action-btn { flex: 1; padding: 8px; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-primary); cursor: pointer; font-size: 0.8rem; font-family: var(--font-body); transition: all 0.2s; }
 .action-btn:hover:not(:disabled) { border-color: var(--gold-dark); background: var(--bg-surface); }
 .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.army-cmd { margin-top: 6px; }
+.cmd-btn { width: 100%; padding: 6px; background: var(--bg-dark); border: 1px solid var(--gold-dark); border-radius: var(--border-radius); color: var(--gold-light); cursor: pointer; font-size: 0.75rem; font-family: var(--font-body); transition: all 0.2s; }
+.cmd-btn:hover:not(:disabled) { background: var(--bg-surface); border-color: var(--gold-primary); }
+.cmd-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .war-parties { font-size: 0.75rem; margin-top: 4px; display: flex; gap: 4px; align-items: center; }
 .attacker { color: var(--color-danger); }
 .defender { color: var(--color-info); }

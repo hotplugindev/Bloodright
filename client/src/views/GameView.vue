@@ -15,6 +15,8 @@
           <MilitaryPanel v-else-if="game.activePanel === 'military'" />
           <DiplomacyPanel v-else-if="game.activePanel === 'diplomacy'" />
           <IntriguePanel v-else-if="game.activePanel === 'intrigue'" />
+          <PopulationPanel v-else-if="game.activePanel === 'population'" />
+          <FocusPanel v-else-if="game.activePanel === 'focus'" />
         </div>
       </transition>
 
@@ -80,6 +82,8 @@ import EconomyPanel from '../components/game/EconomyPanel.vue';
 import MilitaryPanel from '../components/game/MilitaryPanel.vue';
 import DiplomacyPanel from '../components/game/DiplomacyPanel.vue';
 import IntriguePanel from '../components/game/IntriguePanel.vue';
+import PopulationPanel from '../components/game/PopulationPanel.vue';
+import FocusPanel from '../components/game/FocusPanel.vue';
 import EventPopup from '../components/game/EventPopup.vue';
 
 const route = useRoute();

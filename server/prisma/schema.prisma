@@ -51,6 +51,7 @@ model Savegame {
   schemes     Scheme[]
   alliances   Alliance[]
   factions    Faction[]
+  populations Population[]
 
   @@map("savegames")
 }
@@ -123,6 +124,9 @@ model Character {
   lifestyleFocus String? @map("lifestyle_focus") // diplomacy|martial|stewardship|intrigue|learning
   lifestyleXp   Json?   @map("lifestyle_xp") // {diplomacy:0,...}
   lifestylePerks Json?  @map("lifestyle_perks") // array of perk keys unlocked
+
+  // Ruler Focus (kingdom-wide policy)
+  rulerFocus    String? @map("ruler_focus") // warlord|merchant|architect|scholar|diplomat|spymaster
 
   // Relations
   dynastyId    Int?     @map("dynasty_id")
@@ -318,9 +322,13 @@ model Army {
   posY         Float     @map("pos_y")
   targetX      Float?    @map("target_x")
   targetY      Float?    @map("target_y")
+  targetCountyId Int?    @map("target_county_id") // county being attacked/moved to
   levies       Int       @default(0)
   morale       Float     @default(1.0)
   isRaised     Boolean   @default(false) @map("is_raised")
+  isMoving     Boolean   @default(false) @map("is_moving")
+  isSieging    Boolean   @default(false) @map("is_sieging")
+  siegeProgress Float    @default(0) @map("siege_progress")
 
   menAtArms    MenAtArms[]
 
@@ -456,4 +464,41 @@ model GameEvent {
 
   @@index([savegameId, triggerDay])
   @@map("game_events")
+}
+
+// ─── Population / Inhabitants ─────────────────────────────────────
+
+model Population {
+  id           Int      @id @default(autoincrement())
+  savegameId   Int      @map("savegame_id")
+  savegame     Savegame @relation(fields: [savegameId], references: [id], onDelete: Cascade)
+  countyId     Int      @map("county_id") // title id of the county they live in
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  isMale       Boolean  @default(true) @map("is_male")
+  birthDate    Int      @map("birth_date")
+  deathDate    Int?     @map("death_date")
+  isAlive      Boolean  @default(true) @map("is_alive")
+
+  // Stats (simpler than characters)
+  martial      Int      @default(3)
+  stewardship  Int      @default(3)
+  intrigue     Int      @default(3)
+  learning     Int      @default(3)
+  prowess      Int      @default(3)
+  health       Float    @default(5.0)
+  fertility    Float    @default(0.5)
+
+  // Traits
+  traits       Json?    // array of trait keys
+
+  // Role in the realm
+  role         String?  // marshal | steward | spymaster | chancellor | court_physician | knight | none
+  spouseId     Int?     @map("spouse_id") // can be another Population ID, or null
+  spouseType   String?  @map("spouse_type") // "population" | "character" - if married to the ruler
+  fatherId     Int?     @map("father_id")
+  motherId     Int?     @map("mother_id")
+
+  @@index([savegameId, countyId])
+  @@map("populations")
 }

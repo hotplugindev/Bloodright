@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { GameLoop } = require('../engine/GameLoop');
+const focusesData = require('../data/focuses.json');
 
 /**
  * SocketManager — Manages Socket.IO connections, session rooms,
@@ -100,6 +101,7 @@ function setupSocketManager(io, prisma) {
             fatherId: c.fatherId, spouseId: c.spouseId,
             traits: (c.traits || []).map((t) => t.traitKey || t),
             lifestyleFocus: c.lifestyleFocus,
+            rulerFocus: c.rulerFocus,
           })),
           titles: state.titles.map((t) => ({
             id: t.id, key: t.key, name: t.name, tier: t.tier,
@@ -132,6 +134,11 @@ function setupSocketManager(io, prisma) {
             commanderId: a.commanderId,
             posX: a.posX, posY: a.posY, levies: a.levies,
             morale: a.morale, isRaised: a.isRaised,
+            isMoving: a.isMoving || false,
+            isSieging: a.isSieging || false,
+            siegeProgress: a.siegeProgress || 0,
+            targetCountyId: a.targetCountyId || null,
+            targetX: a.targetX, targetY: a.targetY,
             menAtArms: (a.menAtArms || []).map((m) => ({
               type: m.type, count: m.count, maxCount: m.maxCount,
             })),
@@ -149,6 +156,16 @@ function setupSocketManager(io, prisma) {
             type: s.type, power: s.power, secrecy: s.secrecy,
             progress: s.progress, isActive: s.isActive,
           })),
+          populations: (state.populations || []).filter((p) => p.isAlive).map((p) => ({
+            id: p.id, countyId: p.countyId, firstName: p.firstName, lastName: p.lastName,
+            isMale: p.isMale, isAlive: p.isAlive,
+            martial: p.martial, stewardship: p.stewardship, intrigue: p.intrigue,
+            learning: p.learning, prowess: p.prowess, health: p.health,
+            fertility: p.fertility, traits: p.traits,
+            role: p.role, spouseId: p.spouseId, spouseType: p.spouseType,
+            birthDate: p.birthDate,
+          })),
+          focuses: focusesData,
         });
       } catch (err) {
         console.error('Join session error:', err);
@@ -291,21 +308,175 @@ function setupSocketManager(io, prisma) {
       }
     });
 
-    socket.on('move_army', (data) => {
-      const { armyId, targetX, targetY } = data;
+    socket.on('move_army', async (data) => {
+      const { armyId, targetX, targetY, targetCountyId } = data;
       if (!socket.sessionId) return;
 
       const state = gameLoop.sessions.get(socket.sessionId);
       if (!state) return;
 
-      const army = state.armies.find((a) => a.id === armyId);
-      if (army) {
+      const sessionUser = await prisma.sessionUser.findFirst({
+        where: { sessionId: socket.sessionId, userId: socket.user.id },
+      });
+      if (!sessionUser?.characterId) return;
+
+      const army = state.armies.find((a) => a.id === armyId && a.ownerId === sessionUser.characterId);
+      if (!army || !army.isRaised) {
+        socket.emit('error', { message: 'Cannot move this army' });
+        return;
+      }
+
+      // Set target from county if provided
+      if (targetCountyId) {
+        const county = state.titles.find((t) => t.id === targetCountyId && t.tier === 'county');
+        if (county) {
+          army.targetX = county.mapX;
+          army.targetY = county.mapY;
+          army.targetCountyId = targetCountyId;
+        }
+      } else {
         army.targetX = targetX;
         army.targetY = targetY;
-        io.to(`session_${socket.sessionId}`).emit('army_moving', {
-          armyId, targetX, targetY,
-        });
+        army.targetCountyId = null;
       }
+      army.isMoving = true;
+      army.isSieging = false;
+      army.siegeProgress = 0;
+
+      io.to(`session_${socket.sessionId}`).emit('army_moving', {
+        armyId: army.id, targetX: army.targetX, targetY: army.targetY,
+        targetCountyId: army.targetCountyId, isMoving: true,
+      });
+    });
+
+    // ─── Set Ruler Focus ───
+    socket.on('set_ruler_focus', async (data) => {
+      const { focusKey } = data;
+      if (!socket.sessionId) return;
+
+      const state = gameLoop.sessions.get(socket.sessionId);
+      if (!state) return;
+
+      const sessionUser = await prisma.sessionUser.findFirst({
+        where: { sessionId: socket.sessionId, userId: socket.user.id },
+      });
+      if (!sessionUser?.characterId) return;
+
+      const char = state.characters.find((c) => c.id === sessionUser.characterId);
+      if (!char) return;
+
+      const focus = focusesData[focusKey];
+      if (!focus) {
+        socket.emit('error', { message: 'Unknown focus' });
+        return;
+      }
+
+      if (char.gold < focus.cost) {
+        socket.emit('error', { message: `Need ${focus.cost} gold to change focus` });
+        return;
+      }
+
+      char.gold -= focus.cost;
+      char.rulerFocus = focusKey;
+
+      io.to(`session_${socket.sessionId}`).emit('focus_changed', {
+        characterId: char.id, focusKey, goldRemaining: char.gold,
+      });
+    });
+
+    // ─── Assign Population Role ───
+    socket.on('assign_role', async (data) => {
+      const { populationId, role } = data;
+      if (!socket.sessionId) return;
+
+      const state = gameLoop.sessions.get(socket.sessionId);
+      if (!state) return;
+
+      const sessionUser = await prisma.sessionUser.findFirst({
+        where: { sessionId: socket.sessionId, userId: socket.user.id },
+      });
+      if (!sessionUser?.characterId) return;
+
+      const validRoles = ['marshal', 'steward', 'spymaster', 'chancellor', 'court_physician', 'knight', null];
+      if (!validRoles.includes(role)) {
+        socket.emit('error', { message: 'Invalid role' });
+        return;
+      }
+
+      // Verify population belongs to a county held by the player
+      const pop = state.populations.find((p) => p.id === populationId && p.isAlive);
+      if (!pop) {
+        socket.emit('error', { message: 'Population member not found' });
+        return;
+      }
+
+      const playerCounties = state.titles
+        .filter((t) => t.holderId === sessionUser.characterId && t.tier === 'county')
+        .map((t) => t.id);
+
+      if (!playerCounties.includes(pop.countyId)) {
+        socket.emit('error', { message: 'Not your population' });
+        return;
+      }
+
+      // Remove role from any other pop with same role in same realm
+      if (role) {
+        for (const p of state.populations) {
+          if (p.role === role && playerCounties.includes(p.countyId)) {
+            p.role = null;
+          }
+        }
+      }
+
+      pop.role = role;
+      io.to(`session_${socket.sessionId}`).emit('role_assigned', {
+        populationId, role, countyId: pop.countyId,
+      });
+    });
+
+    // ─── Marry Population Member (Ruler marries inhabitant) ───
+    socket.on('marry_population', async (data) => {
+      const { populationId } = data;
+      if (!socket.sessionId) return;
+
+      const state = gameLoop.sessions.get(socket.sessionId);
+      if (!state) return;
+
+      const sessionUser = await prisma.sessionUser.findFirst({
+        where: { sessionId: socket.sessionId, userId: socket.user.id },
+      });
+      if (!sessionUser?.characterId) return;
+
+      const char = state.characters.find((c) => c.id === sessionUser.characterId);
+      if (!char || char.spouseId) {
+        socket.emit('error', { message: 'Already married or character not found' });
+        return;
+      }
+
+      const pop = state.populations.find((p) => p.id === populationId && p.isAlive);
+      if (!pop) {
+        socket.emit('error', { message: 'Population member not found' });
+        return;
+      }
+
+      if (pop.spouseId) {
+        socket.emit('error', { message: 'Already married' });
+        return;
+      }
+
+      // Check opposite gender
+      if (pop.isMale === char.isMale) {
+        socket.emit('error', { message: 'Must be opposite gender' });
+        return;
+      }
+
+      pop.spouseId = char.id;
+      pop.spouseType = 'character';
+
+      io.to(`session_${socket.sessionId}`).emit('ruler_married_population', {
+        characterId: char.id, populationId: pop.id,
+        populationName: `${pop.firstName} ${pop.lastName}`,
+      });
     });
 
     socket.on('save_game', async () => {
@@ -455,6 +626,9 @@ function setupSocketManager(io, prisma) {
         army.isRaised = true;
         army.levies = gameLoop.economyEngine.calculateLevies(char.id, state.titles, state.holdings);
         army.morale = 1.0;
+        army.isMoving = false;
+        army.isSieging = false;
+        army.siegeProgress = 0;
         if (capital) { army.posX = capital.mapX; army.posY = capital.mapY; }
       } else {
         const levies = gameLoop.economyEngine.calculateLevies(char.id, state.titles, state.holdings);
@@ -462,14 +636,20 @@ function setupSocketManager(io, prisma) {
           id: Date.now(), savegameId: state.savegameId, ownerId: char.id,
           commanderId: char.id, name: `${char.firstName}'s Host`,
           posX: capital?.mapX || 400, posY: capital?.mapY || 300,
-          levies: Math.max(100, levies), morale: 1.0, isRaised: true, menAtArms: [],
+          levies: Math.max(100, levies), morale: 1.0, isRaised: true,
+          isMoving: false, isSieging: false, siegeProgress: 0,
+          targetCountyId: null, targetX: null, targetY: null,
+          menAtArms: [],
         };
         state.armies.push(army);
       }
       io.to(`session_${socket.sessionId}`).emit('army_update', {
         army: { id: army.id, name: army.name, ownerId: army.ownerId,
           posX: army.posX, posY: army.posY, levies: army.levies,
-          morale: army.morale, isRaised: army.isRaised, menAtArms: army.menAtArms || [] },
+          morale: army.morale, isRaised: army.isRaised,
+          isMoving: army.isMoving || false, isSieging: army.isSieging || false,
+          siegeProgress: army.siegeProgress || 0,
+          menAtArms: army.menAtArms || [] },
       });
     });
 
@@ -485,10 +665,15 @@ function setupSocketManager(io, prisma) {
       const army = state.armies.find((a) => a.ownerId === sessionUser.characterId && a.isRaised);
       if (army) {
         army.isRaised = false;
+        army.isMoving = false;
+        army.isSieging = false;
+        army.siegeProgress = 0;
         io.to(`session_${socket.sessionId}`).emit('army_update', {
           army: { id: army.id, name: army.name, ownerId: army.ownerId,
             posX: army.posX, posY: army.posY, levies: army.levies,
-            morale: army.morale, isRaised: false, menAtArms: army.menAtArms || [] },
+            morale: army.morale, isRaised: false,
+            isMoving: false, isSieging: false, siegeProgress: 0,
+            menAtArms: army.menAtArms || [] },
         });
       }
     });

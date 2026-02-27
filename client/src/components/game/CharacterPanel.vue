@@ -55,6 +55,18 @@
         <h4>Lifestyle</h4>
         <div class="lifestyle-info">
           <span>Focus: {{ char.lifestyleFocus || 'None' }}</span>
+          <span v-if="char.rulerFocus" class="ruler-focus">
+            🎯 Ruler Focus: {{ char.rulerFocus.replace(/_/g, ' ') }}
+          </span>
+        </div>
+      </div>
+
+      <div class="section" v-if="spouse">
+        <h4>Spouse</h4>
+        <div class="family-member" @click="spouse.isPopulation ? null : game.selectCharacter(spouse.id)">
+          <span>{{ spouse.isMale ? '👤' : '👩' }}</span>
+          <span>{{ spouse.firstName }} {{ spouse.lastName }}</span>
+          <span class="spouse-type" v-if="spouse.isPopulation">👥 Inhabitant</span>
         </div>
       </div>
 
@@ -83,6 +95,17 @@ const game = useGameStore();
 const char = computed(() => game.selectedCharacter);
 const dynasty = computed(() => char.value?.dynastyId ? game.dynasties.find((d) => d.id === char.value.dynastyId) : null);
 const children = computed(() => game.characters.filter((c) => c.fatherId === char.value?.id));
+const spouse = computed(() => {
+  if (!char.value?.spouseId) {
+    // Check if a population member is married to this character
+    const popSpouse = game.populations.find((p) => p.spouseType === 'character' && p.spouseId === char.value?.id && p.isAlive);
+    if (popSpouse) return { ...popSpouse, isPopulation: true };
+    return null;
+  }
+  const charSpouse = game.characters.find((c) => c.id === char.value.spouseId);
+  if (charSpouse) return { ...charSpouse, isPopulation: false };
+  return null;
+});
 const charTitles = computed(() => {
   if (!char.value) return '';
   return game.titles
@@ -210,6 +233,8 @@ function traitClass(trait) {
 }
 .family-member:hover { background: var(--bg-hover); }
 .family-member .dead { color: var(--color-danger); }
+.ruler-focus { display: block; margin-top: 4px; color: var(--gold-light); font-size: 0.8rem; text-transform: capitalize; }
+.spouse-type { font-size: 0.7rem; color: var(--text-muted); margin-left: auto; }
 
 .empty-state { padding: var(--gap-xl); text-align: center; color: var(--text-muted); }
 </style>

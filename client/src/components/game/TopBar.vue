@@ -8,6 +8,8 @@
       <button class="nav-btn" :class="{ active: game.activePanel === 'military' }" @click="game.setPanel(game.activePanel === 'military' ? null : 'military')" id="nav-military">⚔️ Military</button>
       <button class="nav-btn" :class="{ active: game.activePanel === 'diplomacy' }" @click="game.setPanel(game.activePanel === 'diplomacy' ? null : 'diplomacy')" id="nav-diplomacy">🤝 Diplomacy</button>
       <button class="nav-btn" :class="{ active: game.activePanel === 'intrigue' }" @click="game.setPanel(game.activePanel === 'intrigue' ? null : 'intrigue')" id="nav-intrigue">🗡️ Intrigue</button>
+      <button class="nav-btn" :class="{ active: game.activePanel === 'population' }" @click="game.setPanel(game.activePanel === 'population' ? null : 'population')" id="nav-population">👥 Population</button>
+      <button class="nav-btn" :class="{ active: game.activePanel === 'focus' }" @click="game.setPanel(game.activePanel === 'focus' ? null : 'focus')" id="nav-focus">🎯 Focus</button>
     </div>
 
     <div class="top-center">

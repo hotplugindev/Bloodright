@@ -1,0 +1,91 @@
+{
+  "warlord": {
+    "name": "Warlord",
+    "icon": "⚔️",
+    "description": "Focus on military might. Troop costs reduced by 10%, levy size increased by 15%.",
+    "cost": 100,
+    "effects": {
+      "army_maintenance_mult": -0.10,
+      "levy_size_mult": 0.15,
+      "martial_bonus": 2
+    }
+  },
+  "merchant": {
+    "name": "Merchant Prince",
+    "icon": "💰",
+    "description": "Focus on trade and wealth. Kingdom generates 15% more gold, development grows 20% faster.",
+    "cost": 100,
+    "effects": {
+      "tax_mult": 0.15,
+      "development_mult": 0.20,
+      "stewardship_bonus": 2
+    }
+  },
+  "architect": {
+    "name": "Grand Architect",
+    "icon": "🏗️",
+    "description": "Focus on building and infrastructure. Building costs reduced by 15%, build time reduced by 20%.",
+    "cost": 100,
+    "effects": {
+      "build_cost_mult": -0.15,
+      "build_time_mult": -0.20,
+      "development_mult": 0.10
+    }
+  },
+  "scholar": {
+    "name": "Scholar King",
+    "icon": "📚",
+    "description": "Focus on knowledge and faith. Piety and learning gains increased by 25%, innovation progress doubled.",
+    "cost": 100,
+    "effects": {
+      "piety_mult": 0.25,
+      "learning_bonus": 3,
+      "innovation_mult": 1.0
+    }
+  },
+  "diplomat": {
+    "name": "Silver Tongue",
+    "icon": "🕊️",
+    "description": "Focus on diplomacy and alliances. Opinion boost with all rulers, marriage acceptance increased.",
+    "cost": 100,
+    "effects": {
+      "opinion_bonus": 15,
+      "diplomacy_bonus": 3,
+      "prestige_mult": 0.20
+    }
+  },
+  "spymaster": {
+    "name": "Shadow Ruler",
+    "icon": "🗡️",
+    "description": "Focus on intrigue and plots. Scheme power increased by 30%, hostile scheme discovery chance reduced.",
+    "cost": 100,
+    "effects": {
+      "scheme_power_mult": 0.30,
+      "intrigue_bonus": 3,
+      "scheme_secrecy_mult": 0.20
+    }
+  },
+  "conqueror": {
+    "name": "Conqueror",
+    "icon": "🏴",
+    "description": "Focus on expansion. War score from battles increased by 25%, siege speed increased by 20%.",
+    "cost": 150,
+    "effects": {
+      "war_score_mult": 0.25,
+      "siege_speed_mult": 0.20,
+      "army_maintenance_mult": 0.05,
+      "martial_bonus": 1
+    }
+  },
+  "pious": {
+    "name": "Defender of Faith",
+    "icon": "🙏",
+    "description": "Focus on religious authority. Piety income doubled, fervor bonus, holy war casus belli.",
+    "cost": 100,
+    "effects": {
+      "piety_mult": 1.0,
+      "fervor_bonus": 10,
+      "learning_bonus": 1
+    }
+  }
+}

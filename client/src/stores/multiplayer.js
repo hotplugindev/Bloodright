@@ -11,7 +11,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
     inviteCode: null,
     players: [],
     chatMessages: [],
-    status: 'disconnected', // disconnected | connecting | connected | in_game
+    status: 'disconnected',
   }),
 
   actions: {
@@ -57,15 +57,10 @@ export const useMultiplayerStore = defineStore('multiplayer', {
 
       this.socket.on('player_selected_character', (data) => {
         const player = this.players.find((p) => p.userId === data.userId);
-        if (player) {
-          player.characterId = data.characterId;
-        }
-        // Mark the character as player-controlled in the game store
+        if (player) player.characterId = data.characterId;
         const game = useGameStore();
         const char = game.characters.find((c) => c.id === data.characterId);
-        if (char) {
-          char.isPlayer = true;
-        }
+        if (char) char.isPlayer = true;
       });
 
       this.socket.on('tick', (data) => {
@@ -84,36 +79,21 @@ export const useMultiplayerStore = defineStore('multiplayer', {
         game.pendingEvents = [];
       });
 
-      this.socket.on('game_started', () => {
-        const game = useGameStore();
-        game.isPaused = false;
-      });
-
-      this.socket.on('game_paused', () => {
-        const game = useGameStore();
-        game.isPaused = true;
-      });
-
-      this.socket.on('game_resumed', () => {
-        const game = useGameStore();
-        game.isPaused = false;
-      });
+      this.socket.on('game_started', () => { useGameStore().isPaused = false; });
+      this.socket.on('game_paused', () => { useGameStore().isPaused = true; });
+      this.socket.on('game_resumed', () => { useGameStore().isPaused = false; });
 
       this.socket.on('speed_changed', (data) => {
-        const game = useGameStore();
-        game.tickSpeed = data.speed;
+        useGameStore().tickSpeed = data.speed;
       });
 
       this.socket.on('chat_message', (data) => {
         this.chatMessages.push(data);
-        if (this.chatMessages.length > 100) {
-          this.chatMessages.shift();
-        }
+        if (this.chatMessages.length > 100) this.chatMessages.shift();
       });
 
       this.socket.on('game_saved', () => {
-        const game = useGameStore();
-        game.addNotification({ type: 'info', message: 'Game saved successfully' });
+        useGameStore().addNotification({ type: 'info', message: 'Game saved successfully' });
       });
 
       this.socket.on('building_started', (data) => {
@@ -123,11 +103,8 @@ export const useMultiplayerStore = defineStore('multiplayer', {
         if (holding && data.building) {
           if (!holding.buildings) holding.buildings = [];
           const existing = holding.buildings.find((b) => b.buildingKey === data.buildingKey);
-          if (existing) {
-            Object.assign(existing, data.building);
-          } else {
-            holding.buildings.push({ id: Date.now(), ...data.building });
-          }
+          if (existing) Object.assign(existing, data.building);
+          else holding.buildings.push({ id: Date.now(), ...data.building });
         }
         game.addNotification({ type: 'success', message: `Construction started: ${data.buildingKey.replace(/_/g, ' ')}` });
       });
@@ -145,8 +122,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       });
 
       this.socket.on('marriage_rejected', (data) => {
-        const game = useGameStore();
-        game.addNotification({ type: 'info', message: data.reason || 'Marriage proposal rejected' });
+        useGameStore().addNotification({ type: 'info', message: data.reason || 'Marriage proposal rejected' });
       });
 
       this.socket.on('scheme_started', (data) => {
@@ -158,15 +134,45 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       this.socket.on('army_update', (data) => {
         const game = useGameStore();
         game.updateArmy(data.army);
-        if (data.army.isRaised) {
-          game.addNotification({ type: 'info', message: `${data.army.name} has been raised` });
+      });
+
+      this.socket.on('army_moving', (data) => {
+        const game = useGameStore();
+        const army = game.armies.find((a) => a.id === data.armyId);
+        if (army) {
+          army.targetX = data.targetX;
+          army.targetY = data.targetY;
+          army.targetCountyId = data.targetCountyId;
+          army.isMoving = true;
         }
+        game.armyMoveMode = false;
+        game.selectedArmyId = null;
+      });
+
+      this.socket.on('focus_changed', (data) => {
+        const game = useGameStore();
+        const char = game.characters.find((c) => c.id === data.characterId);
+        if (char) {
+          char.rulerFocus = data.focusKey;
+          char.gold = data.goldRemaining;
+        }
+        game.addNotification({ type: 'success', message: `Ruler focus changed to ${data.focusKey.replace(/_/g, ' ')}` });
+      });
+
+      this.socket.on('role_assigned', (data) => {
+        const game = useGameStore();
+        game.updatePopulationRole(data.populationId, data.role);
+        game.addNotification({ type: 'info', message: `Role assigned: ${(data.role || 'none').replace(/_/g, ' ')}` });
+      });
+
+      this.socket.on('ruler_married_population', (data) => {
+        const game = useGameStore();
+        game.addNotification({ type: 'success', message: `Married ${data.populationName}!` });
       });
 
       this.socket.on('error', (data) => {
         console.error('Socket error:', data.message);
-        const game = useGameStore();
-        game.addNotification({ type: 'error', message: data.message });
+        useGameStore().addNotification({ type: 'error', message: data.message });
       });
     },
 
@@ -180,6 +186,18 @@ export const useMultiplayerStore = defineStore('multiplayer', {
     },
     moveArmy(armyId, targetX, targetY) {
       this.socket?.emit('move_army', { armyId, targetX, targetY });
+    },
+    moveArmyToCounty(armyId, targetCountyId) {
+      this.socket?.emit('move_army', { armyId, targetCountyId });
+    },
+    setRulerFocus(focusKey) {
+      this.socket?.emit('set_ruler_focus', { focusKey });
+    },
+    assignRole(populationId, role) {
+      this.socket?.emit('assign_role', { populationId, role });
+    },
+    marryPopulation(populationId) {
+      this.socket?.emit('marry_population', { populationId });
     },
     saveGame() { this.socket?.emit('save_game'); },
     sendChat(message) { this.socket?.emit('chat_message', { message }); },

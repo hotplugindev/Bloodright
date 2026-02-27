@@ -278,15 +278,69 @@ async function main() {
               { holdingId: holding.id, buildingKey: 'farm_estate', level: 1 },
             ],
           });
+
+          // Generate initial population for the county
+          const popCount = 8 + Math.floor(Math.random() * 8); // 8-15 inhabitants
+          const popMaleFirst = [
+            'Aldric','Beorn','Caden','Darius','Edric','Frej','Gareth','Harald',
+            'Ivar','Jorund','Kael','Leoric','Magnus','Njord','Osric','Perrin',
+            'Ragnar','Sigmund','Theron','Ulfric','Varen','Willem','Xander','Yorick',
+            'Zarek','Alaric','Baldric','Cedric','Dorian','Edmund','Florian','Gideon',
+          ];
+          const popFemaleFirst = [
+            'Astrid','Brenna','Cordelia','Dahlia','Elara','Freya','Gwendolyn','Helga',
+            'Isolde','Jora','Katarina','Lyria','Maelis','Nessa','Ophelia','Petra',
+            'Rosalind','Sigrid','Thea','Una','Vivienne','Willow','Xena','Ysolde',
+          ];
+          const popLastNames = [
+            'Baker','Smith','Thatcher','Cooper','Fletcher','Tanner','Miller','Weaver',
+            'Fisher','Carpenter','Mason','Brewer','Forester','Shepherd','Hunter','Porter',
+            'Ward','Chandler','Sawyer','Archer',
+          ];
+          const popTraitPool = ['brave','craven','ambitious','content','honest','deceitful',
+            'generous','greedy','patient','wrathful','diligent','lazy','kind','cruel'];
+
+          const popData = [];
+          for (let pi = 0; pi < popCount; pi++) {
+            const popMale = Math.random() > 0.5;
+            const popFirst = popMale
+              ? popMaleFirst[Math.floor(Math.random() * popMaleFirst.length)]
+              : popFemaleFirst[Math.floor(Math.random() * popFemaleFirst.length)];
+            const popLast = popLastNames[Math.floor(Math.random() * popLastNames.length)];
+            const numTraits = 1 + Math.floor(Math.random() * 2);
+            const shuffled = [...popTraitPool].sort(() => Math.random() - 0.5);
+            const chosenTraits = shuffled.slice(0, numTraits);
+
+            popData.push({
+              savegameId: saveId,
+              countyId: countyTitle.id,
+              firstName: popFirst,
+              lastName: popLast,
+              isMale: popMale,
+              birthDate: -(365 * (16 + Math.floor(Math.random() * 30))), // 16-45 years old
+              isAlive: true,
+              martial: randomStat(5),
+              stewardship: randomStat(5),
+              intrigue: randomStat(5),
+              learning: randomStat(5),
+              prowess: randomStat(5),
+              health: 3.0 + Math.random() * 3,
+              fertility: 0.3 + Math.random() * 0.5,
+              traits: chosenTraits,
+            });
+          }
+          await prisma.population.createMany({ data: popData });
         }
       }
     }
   }
 
+  const popTotal = await prisma.population.count();
   console.log('✅ Database seeded successfully!');
   console.log(`   - ${Object.keys(religionMap).length} religions`);
   console.log(`   - ${Object.keys(cultureMap).length} cultures`);
   console.log(`   - ${dynastyIndex} dynasties with rulers`);
+  console.log(`   - ${popTotal} inhabitants across all counties`);
   console.log(`   - Map hierarchy seeded with titles and holdings`);
 }
 

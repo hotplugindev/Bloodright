@@ -9,17 +9,17 @@
             {
               "key": "d_stormhold", "name": "Duchy of Stormhold", "color": "#CD5C5C",
               "counties": [
-                { "key": "c_stormhold", "name": "Stormhold", "x": 150, "y": 200, "terrain": "hills", "slots": 3 },
-                { "key": "c_ironmere", "name": "Ironmere", "x": 200, "y": 180, "terrain": "plains", "slots": 2 },
-                { "key": "c_frostgate", "name": "Frostgate", "x": 130, "y": 150, "terrain": "mountains", "slots": 2 }
+                { "key": "c_stormhold", "name": "Stormhold", "x": 120, "y": 320, "terrain": "hills", "slots": 3 },
+                { "key": "c_ironmere", "name": "Ironmere", "x": 190, "y": 270, "terrain": "plains", "slots": 2 },
+                { "key": "c_frostgate", "name": "Frostgate", "x": 80, "y": 240, "terrain": "mountains", "slots": 2 }
               ]
             },
             {
               "key": "d_goldvale", "name": "Duchy of Goldvale", "color": "#DAA520",
               "counties": [
-                { "key": "c_goldvale", "name": "Goldvale", "x": 250, "y": 220, "terrain": "plains", "slots": 3 },
-                { "key": "c_harvest", "name": "Harvest Fields", "x": 280, "y": 250, "terrain": "plains", "slots": 2 },
-                { "key": "c_millbrook", "name": "Millbrook", "x": 220, "y": 260, "terrain": "forest", "slots": 2 }
+                { "key": "c_goldvale", "name": "Goldvale", "x": 260, "y": 380, "terrain": "plains", "slots": 3 },
+                { "key": "c_harvest", "name": "Harvest Fields", "x": 310, "y": 440, "terrain": "plains", "slots": 2 },
+                { "key": "c_millbrook", "name": "Millbrook", "x": 200, "y": 420, "terrain": "forest", "slots": 2 }
               ]
             }
           ]
@@ -30,17 +30,17 @@
             {
               "key": "d_seawatch", "name": "Duchy of Seawatch", "color": "#6495ED",
               "counties": [
-                { "key": "c_seawatch", "name": "Seawatch", "x": 400, "y": 350, "terrain": "coast", "slots": 3 },
-                { "key": "c_tidecrest", "name": "Tidecrest", "x": 430, "y": 320, "terrain": "coast", "slots": 2 },
-                { "key": "c_coralhaven", "name": "Coralhaven", "x": 450, "y": 370, "terrain": "coast", "slots": 2 }
+                { "key": "c_seawatch", "name": "Seawatch", "x": 140, "y": 530, "terrain": "coast", "slots": 3 },
+                { "key": "c_tidecrest", "name": "Tidecrest", "x": 220, "y": 570, "terrain": "coast", "slots": 2 },
+                { "key": "c_coralhaven", "name": "Coralhaven", "x": 80, "y": 600, "terrain": "coast", "slots": 2 }
               ]
             },
             {
               "key": "d_trident", "name": "Duchy of Trident", "color": "#1E90FF",
               "counties": [
-                { "key": "c_trident", "name": "Trident", "x": 380, "y": 300, "terrain": "plains", "slots": 3 },
-                { "key": "c_driftwood", "name": "Driftwood Bay", "x": 350, "y": 330, "terrain": "marsh", "slots": 2 },
-                { "key": "c_anchorton", "name": "Anchorton", "x": 360, "y": 280, "terrain": "coast", "slots": 2 }
+                { "key": "c_trident", "name": "Trident", "x": 300, "y": 530, "terrain": "plains", "slots": 3 },
+                { "key": "c_driftwood", "name": "Driftwood Bay", "x": 260, "y": 490, "terrain": "marsh", "slots": 2 },
+                { "key": "c_anchorton", "name": "Anchorton", "x": 350, "y": 600, "terrain": "coast", "slots": 2 }
               ]
             }
           ]
@@ -56,17 +56,17 @@
             {
               "key": "d_oasis", "name": "Duchy of Golden Oasis", "color": "#F0E68C",
               "counties": [
-                { "key": "c_oasis", "name": "Golden Oasis", "x": 500, "y": 450, "terrain": "desert", "slots": 3 },
-                { "key": "c_sandspire", "name": "Sandspire", "x": 530, "y": 430, "terrain": "desert", "slots": 2 },
-                { "key": "c_dusthold", "name": "Dusthold", "x": 480, "y": 470, "terrain": "desert", "slots": 2 }
+                { "key": "c_oasis", "name": "Golden Oasis", "x": 650, "y": 500, "terrain": "desert", "slots": 3 },
+                { "key": "c_sandspire", "name": "Sandspire", "x": 720, "y": 440, "terrain": "desert", "slots": 2 },
+                { "key": "c_dusthold", "name": "Dusthold", "x": 580, "y": 550, "terrain": "desert", "slots": 2 }
               ]
             },
             {
               "key": "d_flamecrest", "name": "Duchy of Flamecrest", "color": "#FF8C00",
               "counties": [
-                { "key": "c_flamecrest", "name": "Flamecrest", "x": 550, "y": 480, "terrain": "hills", "slots": 3 },
-                { "key": "c_ember", "name": "Ember Falls", "x": 570, "y": 460, "terrain": "hills", "slots": 2 },
-                { "key": "c_ashfield", "name": "Ashfield", "x": 520, "y": 500, "terrain": "plains", "slots": 2 }
+                { "key": "c_flamecrest", "name": "Flamecrest", "x": 780, "y": 550, "terrain": "hills", "slots": 3 },
+                { "key": "c_ember", "name": "Ember Falls", "x": 830, "y": 480, "terrain": "hills", "slots": 2 },
+                { "key": "c_ashfield", "name": "Ashfield", "x": 700, "y": 600, "terrain": "plains", "slots": 2 }
               ]
             }
           ]
@@ -77,17 +77,17 @@
             {
               "key": "d_twilight", "name": "Duchy of Twilight", "color": "#BA55D3",
               "counties": [
-                { "key": "c_twilight", "name": "Twilight", "x": 600, "y": 350, "terrain": "forest", "slots": 3 },
-                { "key": "c_starfall", "name": "Starfall", "x": 630, "y": 330, "terrain": "hills", "slots": 2 },
-                { "key": "c_nighthollow", "name": "Nighthollow", "x": 580, "y": 370, "terrain": "forest", "slots": 2 }
+                { "key": "c_twilight", "name": "Twilight", "x": 800, "y": 330, "terrain": "forest", "slots": 3 },
+                { "key": "c_starfall", "name": "Starfall", "x": 870, "y": 270, "terrain": "hills", "slots": 2 },
+                { "key": "c_nighthollow", "name": "Nighthollow", "x": 740, "y": 380, "terrain": "forest", "slots": 2 }
               ]
             },
             {
               "key": "d_silverpeak", "name": "Duchy of Silver Peak", "color": "#C0C0C0",
               "counties": [
-                { "key": "c_silverpeak", "name": "Silver Peak", "x": 650, "y": 300, "terrain": "mountains", "slots": 3 },
-                { "key": "c_crystalvein", "name": "Crystal Vein", "x": 670, "y": 280, "terrain": "mountains", "slots": 2 },
-                { "key": "c_highpass", "name": "High Pass", "x": 620, "y": 310, "terrain": "mountains", "slots": 2 }
+                { "key": "c_silverpeak", "name": "Silver Peak", "x": 880, "y": 380, "terrain": "mountains", "slots": 3 },
+                { "key": "c_crystalvein", "name": "Crystal Vein", "x": 920, "y": 310, "terrain": "mountains", "slots": 2 },
+                { "key": "c_highpass", "name": "High Pass", "x": 830, "y": 200, "terrain": "mountains", "slots": 2 }
               ]
             }
           ]
@@ -103,17 +103,17 @@
             {
               "key": "d_eldergrove", "name": "Duchy of Eldergrove", "color": "#32CD32",
               "counties": [
-                { "key": "c_eldergrove", "name": "Eldergrove", "x": 300, "y": 100, "terrain": "forest", "slots": 3 },
-                { "key": "c_mosswall", "name": "Mosswall", "x": 320, "y": 80, "terrain": "forest", "slots": 2 },
-                { "key": "c_ferndale", "name": "Ferndale", "x": 280, "y": 120, "terrain": "forest", "slots": 2 }
+                { "key": "c_eldergrove", "name": "Eldergrove", "x": 380, "y": 150, "terrain": "forest", "slots": 3 },
+                { "key": "c_mosswall", "name": "Mosswall", "x": 450, "y": 90, "terrain": "forest", "slots": 2 },
+                { "key": "c_ferndale", "name": "Ferndale", "x": 320, "y": 100, "terrain": "forest", "slots": 2 }
               ]
             },
             {
               "key": "d_thornfield", "name": "Duchy of Thornfield", "color": "#556B2F",
               "counties": [
-                { "key": "c_thornfield", "name": "Thornfield", "x": 350, "y": 130, "terrain": "marsh", "slots": 3 },
-                { "key": "c_bogmire", "name": "Bogmire", "x": 370, "y": 110, "terrain": "marsh", "slots": 2 },
-                { "key": "c_willowfen", "name": "Willowfen", "x": 330, "y": 150, "terrain": "marsh", "slots": 2 }
+                { "key": "c_thornfield", "name": "Thornfield", "x": 500, "y": 180, "terrain": "marsh", "slots": 3 },
+                { "key": "c_bogmire", "name": "Bogmire", "x": 560, "y": 120, "terrain": "marsh", "slots": 2 },
+                { "key": "c_willowfen", "name": "Willowfen", "x": 440, "y": 220, "terrain": "marsh", "slots": 2 }
               ]
             }
           ]
@@ -124,17 +124,17 @@
             {
               "key": "d_anvil", "name": "Duchy of the Anvil", "color": "#A9A9A9",
               "counties": [
-                { "key": "c_anvil", "name": "Anvil Hold", "x": 450, "y": 150, "terrain": "mountains", "slots": 3 },
-                { "key": "c_hammer", "name": "Hammerpeak", "x": 470, "y": 130, "terrain": "mountains", "slots": 2 },
-                { "key": "c_forge", "name": "Forgevalley", "x": 430, "y": 170, "terrain": "hills", "slots": 2 }
+                { "key": "c_anvil", "name": "Anvil Hold", "x": 600, "y": 180, "terrain": "mountains", "slots": 3 },
+                { "key": "c_hammer", "name": "Hammerpeak", "x": 670, "y": 120, "terrain": "mountains", "slots": 2 },
+                { "key": "c_forge", "name": "Forgevalley", "x": 560, "y": 260, "terrain": "hills", "slots": 2 }
               ]
             },
             {
               "key": "d_wolfmarch", "name": "Duchy of Wolfmarch", "color": "#696969",
               "counties": [
-                { "key": "c_wolfmarch", "name": "Wolfmarch", "x": 500, "y": 180, "terrain": "plains", "slots": 3 },
-                { "key": "c_pawprint", "name": "Pawprint", "x": 520, "y": 160, "terrain": "plains", "slots": 2 },
-                { "key": "c_howling", "name": "Howling Pass", "x": 480, "y": 200, "terrain": "hills", "slots": 2 }
+                { "key": "c_wolfmarch", "name": "Wolfmarch", "x": 700, "y": 250, "terrain": "plains", "slots": 3 },
+                { "key": "c_pawprint", "name": "Pawprint", "x": 760, "y": 180, "terrain": "plains", "slots": 2 },
+                { "key": "c_howling", "name": "Howling Pass", "x": 640, "y": 320, "terrain": "hills", "slots": 2 }
               ]
             }
           ]
