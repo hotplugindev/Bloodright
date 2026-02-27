@@ -36,6 +36,17 @@
           <div class="form-group">
             <input v-model="newGameName" type="text" class="input" placeholder="Campaign name" id="new-game-name">
           </div>
+          <div class="form-group">
+            <label class="difficulty-label">Difficulty</label>
+            <div class="difficulty-select">
+              <button v-for="d in difficulties" :key="d.key"
+                class="diff-btn" :class="{ active: selectedDifficulty === d.key }"
+                @click="selectedDifficulty = d.key"
+                :id="'diff-' + d.key">
+                {{ d.icon }} {{ d.label }}
+              </button>
+            </div>
+          </div>
           <button class="btn btn-primary" @click="createSession" :disabled="creating" id="create-session-btn">
             {{ creating ? 'Creating...' : 'Create Session' }}
           </button>
@@ -70,6 +81,14 @@ const newGameName = ref('');
 const inviteCode = ref('');
 const creating = ref(false);
 const joining = ref(false);
+const selectedDifficulty = ref('normal');
+
+const difficulties = [
+  { key: 'easy', label: 'Easy', icon: '🟢' },
+  { key: 'normal', label: 'Normal', icon: '🟡' },
+  { key: 'hard', label: 'Hard', icon: '🟠' },
+  { key: 'very_hard', label: 'Very Hard', icon: '🔴' },
+];
 
 onMounted(async () => {
   await loadSessions();
@@ -87,7 +106,7 @@ async function loadSessions() {
 async function createSession() {
   creating.value = true;
   try {
-    const { data } = await api.post('/sessions', { name: newGameName.value || 'New Campaign' });
+    const { data } = await api.post('/sessions', { name: newGameName.value || 'New Campaign', difficulty: selectedDifficulty.value });
     await loadSessions();
     router.push(`/game/${data.session.id}`);
   } catch (err) {
@@ -225,5 +244,39 @@ function handleLogout() {
   color: var(--text-muted);
   text-align: center;
   padding: var(--gap-xl);
+}
+
+.difficulty-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--gap-xs);
+}
+
+.difficulty-select {
+  display: flex;
+  gap: var(--gap-xs);
+}
+
+.diff-btn {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 0.75rem;
+  font-family: var(--font-body);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.diff-btn:hover { border-color: var(--gold-dark); color: var(--text-primary); }
+.diff-btn.active {
+  border-color: var(--gold-primary);
+  color: var(--gold-light);
+  background: var(--bg-hover);
+  box-shadow: 0 0 8px var(--gold-glow);
 }
 </style>

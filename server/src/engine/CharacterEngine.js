@@ -37,7 +37,7 @@ class CharacterEngine {
 
       // Death check
       if (char.health <= 0 || age > 80 + Math.random() * 20) {
-        events.push({ type: 'character_death', characterId: char.id, day: currentDay });
+        events.push({ type: 'character_death', characterId: char.id, name: `${char.firstName} ${char.lastName}`, age, day: currentDay });
         char.isAlive = false;
         char.deathDate = currentDay;
       }

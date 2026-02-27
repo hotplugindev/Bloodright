@@ -26,7 +26,7 @@ class MilitaryEngine {
    * Process daily army movement for all armies.
    * Returns battle events when armies collide.
    */
-  processDailyArmyMovement(armies, counties, characters, wars) {
+  processDailyArmyMovement(armies, counties, characters, wars, allTitles) {
     const events = [];
 
     for (const army of armies) {
@@ -168,7 +168,7 @@ class MilitaryEngine {
 
             // Check war resolution
             if (Math.abs(war.warScore) >= 100) {
-              events.push(...this.resolveWar(war, characters, counties));
+              events.push(...this.resolveWar(war, characters, counties, allTitles));
             }
           }
         }
@@ -181,7 +181,7 @@ class MilitaryEngine {
   /**
    * Process daily siege progress.
    */
-  processDailySieges(armies, holdings, counties, wars) {
+  processDailySieges(armies, holdings, counties, wars, allTitles) {
     const events = [];
 
     for (const army of armies) {
@@ -213,6 +213,7 @@ class MilitaryEngine {
       if (army.siegeProgress >= 100) {
         // Siege complete - capture county
         const oldHolder = county.holderId;
+        county._previousHolder = oldHolder; // Track for war resolution
         county.holderId = army.ownerId;
         army.isSieging = false;
         army.siegeProgress = 0;
@@ -239,7 +240,7 @@ class MilitaryEngine {
         });
 
         if (war && Math.abs(war.warScore) >= 100) {
-          events.push(...this.resolveWar(war, [], counties));
+          events.push(...this.resolveWar(war, [], counties, allTitles));
         }
       }
     }
@@ -248,15 +249,65 @@ class MilitaryEngine {
   }
 
   /**
-   * Resolve war end.
+   * Resolve war end — transfer titles on attacker victory.
+   * @param {Object} war
+   * @param {Array} characters
+   * @param {Array} counties - county-tier titles
+   * @param {Array} allTitles - all titles for barony/duchy/kingdom transfers
    */
-  resolveWar(war, characters, counties) {
+  resolveWar(war, characters, counties, allTitles) {
     const events = [];
     war.endDate = war.startDate; // Will be set to current day by caller
+    const titlesToTransfer = allTitles || counties; // fallback
+
     if (war.warScore >= 100) {
       war.result = 'attacker_victory';
-    } else {
+
+      // Transfer ALL titles held by defender to attacker (full annexation)
+      for (const title of titlesToTransfer) {
+        if (title.holderId === war.defenderId) {
+          const oldHolder = title.holderId;
+          title.holderId = war.attackerId;
+          events.push({
+            type: 'county_annexed',
+            titleId: title.id,
+            countyId: title.id,
+            countyName: title.name,
+            tier: title.tier,
+            newOwnerId: war.attackerId,
+            oldOwnerId: oldHolder,
+          });
+        }
+      }
+
+      const attackerChar = characters?.find((c) => c.id === war.attackerId);
+      const defenderChar = characters?.find((c) => c.id === war.defenderId);
+      if (attackerChar) attackerChar.prestige += 200;
+      if (defenderChar) defenderChar.prestige -= 100;
+
+    } else if (war.warScore <= -100) {
       war.result = 'defender_victory';
+
+      // Defender reclaims any occupied counties/titles
+      for (const title of titlesToTransfer) {
+        if (title._previousHolder === war.defenderId && title.holderId === war.attackerId) {
+          title.holderId = war.defenderId;
+          events.push({
+            type: 'county_annexed',
+            titleId: title.id,
+            countyId: title.id,
+            countyName: title.name,
+            tier: title.tier,
+            newOwnerId: war.defenderId,
+            oldOwnerId: war.attackerId,
+          });
+        }
+      }
+
+      const attackerChar = characters?.find((c) => c.id === war.attackerId);
+      const defenderChar = characters?.find((c) => c.id === war.defenderId);
+      if (attackerChar) attackerChar.prestige -= 200;
+      if (defenderChar) defenderChar.prestige += 100;
     }
 
     events.push({

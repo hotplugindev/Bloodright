@@ -25,6 +25,7 @@ export const useGameStore = defineStore('game', {
     isPaused: true,
     tickSpeed: 1,
     armyMoveMode: false,
+    difficulty: 'normal',
   }),
 
   getters: {
@@ -77,6 +78,7 @@ export const useGameStore = defineStore('game', {
       this.alliances = data.alliances || [];
       this.populations = data.populations || [];
       this.focuses = data.focuses || {};
+      this.difficulty = data.difficulty || 'normal';
       if (data.playerCharacterId) {
         this.playerCharacterId = data.playerCharacterId;
         this.selectedCharacterId = data.playerCharacterId;
@@ -99,6 +101,13 @@ export const useGameStore = defineStore('game', {
             if (upd.stress !== undefined) char.stress = upd.stress;
             if (upd.isAlive !== undefined) char.isAlive = upd.isAlive;
             if (upd.rulerFocus !== undefined) char.rulerFocus = upd.rulerFocus;
+            if (upd.fertility !== undefined) char.fertility = upd.fertility;
+            if (upd.spouseId !== undefined) char.spouseId = upd.spouseId;
+            if (upd.deathDate !== undefined) char.deathDate = upd.deathDate;
+            if (upd.isPlayer !== undefined) char.isPlayer = upd.isPlayer;
+          } else {
+            // New character (born during gameplay) — add to list
+            this.characters.push(upd);
           }
         }
       }
@@ -106,7 +115,11 @@ export const useGameStore = defineStore('game', {
         for (const upd of updates.armyUpdates) {
           const idx = this.armies.findIndex((a) => a.id === upd.id);
           if (idx >= 0) this.armies[idx] = { ...this.armies[idx], ...upd };
+          else this.armies.push(upd); // New army (e.g. AI raised)
         }
+        // Remove disbanded armies that are no longer in updates
+        const activeIds = new Set(updates.armyUpdates.map((a) => a.id));
+        this.armies = this.armies.filter((a) => activeIds.has(a.id) || a.isRaised);
       }
       if (updates.armyPositions) {
         for (const pos of updates.armyPositions) {
@@ -120,29 +133,81 @@ export const useGameStore = defineStore('game', {
           }
         }
       }
+      if (updates.titleUpdates) {
+        for (const tUpd of updates.titleUpdates) {
+          const title = this.titles.find((t) => t.id === tUpd.id);
+          if (title) title.holderId = tUpd.holderId;
+        }
+      }
       if (updates.warUpdates) {
         for (const wUpd of updates.warUpdates) {
-          const war = this.wars.find((w) => w.id === wUpd.id);
-          if (war) war.warScore = wUpd.warScore;
+          const existing = this.wars.find((w) => w.id === wUpd.id);
+          if (existing) {
+            existing.warScore = wUpd.warScore;
+            if (wUpd.endDate) existing.endDate = wUpd.endDate;
+            if (wUpd.result) existing.result = wUpd.result;
+          } else {
+            this.wars.push(wUpd); // New war (e.g. AI declared)
+          }
         }
       }
       const events = tickData.events || [];
       for (const ev of events) {
         if (ev.type === 'battle') {
-          this.addNotification({ type: 'error', message: 'Battle! Armies clashed!' });
-        } else if (ev.type === 'county_captured') {
-          this.addNotification({ type: 'error', message: 'A county was captured!' });
+          this.addNotification({ type: 'error', message: `⚔️ Battle at ${ev.location}! ${ev.winner === 'attacker' ? 'Attacker' : 'Defender'} wins!` });
+        } else if (ev.type === 'siege_complete') {
+          // County was captured during siege
+          const title = this.titles.find((t) => t.id === ev.countyId);
+          if (title) title.holderId = ev.newOwnerId;
+          this.addNotification({ type: 'warning', message: `🏰 ${ev.countyName} captured!` });
+        } else if (ev.type === 'county_annexed') {
+          // Title transferred from war resolution
+          const title = this.titles.find((t) => t.id === (ev.titleId || ev.countyId));
+          if (title) title.holderId = ev.newOwnerId;
+          this.addNotification({ type: 'warning', message: `📜 ${ev.countyName} annexed!` });
         } else if (ev.type === 'war_ended') {
-          this.addNotification({ type: 'info', message: `War ended: ${ev.result}` });
+          const resultText = ev.result === 'attacker_victory' ? 'Attacker Victory' : 'Defender Victory';
+          this.addNotification({ type: 'info', message: `⚔️ War ended: ${resultText}` });
           const war = this.wars.find((w) => w.id === ev.warId);
-          if (war) war.endDate = this.gameDate;
+          if (war) {
+            war.endDate = this.gameDate;
+            war.result = ev.result;
+          }
+        } else if (ev.type === 'war_declared') {
+          if (ev.war) this.addWar(ev.war);
+          this.addNotification({ type: 'error', message: `⚔️ War: ${ev.war?.name || 'A war has started!'}` });
+        } else if (ev.type === 'siege_started') {
+          this.addNotification({ type: 'warning', message: `🏰 Siege of ${ev.countyName} begun!` });
         } else if (ev.type === 'birth' && ev.child) {
           const exists = this.characters.find((c) => c.id === ev.child.id);
           if (!exists) this.characters.push(ev.child);
+          if (ev.fatherId === this.playerCharacterId || ev.motherId === this.playerCharacterId) {
+            this.addNotification({ type: 'success', message: `👶 A ${ev.child.isMale ? 'son' : 'daughter'} has been born: ${ev.child.firstName}!` });
+          }
         } else if (ev.type === 'title_inherited') {
           const title = this.titles.find((t) => t.id === ev.titleId);
           if (title) title.holderId = ev.heirId;
-          this.addNotification({ type: 'info', message: 'Title inherited' });
+          this.addNotification({ type: 'info', message: '👑 Title inherited' });
+        } else if (ev.type === 'character_death') {
+          const dead = this.characters.find((c) => c.id === ev.characterId);
+          if (dead) {
+            dead.isAlive = false;
+            dead.deathDate = this.gameDate;
+          }
+          this.addNotification({ type: 'info', message: `💀 ${ev.name || 'A character'} has died` });
+        } else if (ev.type === 'player_heir_succession') {
+          // Player ruler died — switch to heir
+          if (ev.deadRulerId === this.playerCharacterId) {
+            this.playerCharacterId = ev.heirId;
+            this.selectedCharacterId = ev.heirId;
+            const heir = this.characters.find((c) => c.id === ev.heirId);
+            if (heir) heir.isPlayer = true;
+            const dead = this.characters.find((c) => c.id === ev.deadRulerId);
+            if (dead) dead.isPlayer = false;
+            this.addNotification({ type: 'warning', message: `👑 Your ruler has died! You now play as ${ev.heirName}` });
+          }
+        } else if (ev.type === 'ai_raise_army' || ev.type === 'ai_move_army' || ev.type === 'ai_disband_army') {
+          // Silent AI events — don't notify player
         }
       }
     },

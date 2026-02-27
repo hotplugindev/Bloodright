@@ -9,7 +9,9 @@ const prisma = new PrismaClient();
 // POST /api/sessions — create a new game session
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { savegameId, name } = req.body;
+    const { savegameId, name, difficulty } = req.body;
+    const validDifficulties = ['easy', 'normal', 'hard', 'very_hard'];
+    const gameDifficulty = validDifficulties.includes(difficulty) ? difficulty : 'normal';
     let saveId = savegameId;
 
     // If no savegame specified, create new from template
@@ -24,6 +26,7 @@ router.post('/', authMiddleware, async (req, res) => {
           name: name || `Game ${Date.now()}`,
           userId: req.user.id,
           gameDate: templateSave ? templateSave.gameDate : 0,
+          difficulty: gameDifficulty,
         },
       });
       saveId = newSave.id;
@@ -43,6 +46,7 @@ router.post('/', authMiddleware, async (req, res) => {
         savegameId: saveId,
         hostUserId: req.user.id,
         status: 'lobby',
+        difficulty: gameDifficulty,
       },
     });
 
@@ -340,6 +344,65 @@ async function copyGameState(fromSaveId, toSaveId) {
           level: b.level,
           isBuilding: b.isBuilding,
           buildDays: b.buildDays,
+        })),
+      });
+    }
+  }
+
+  // Copy populations
+  const populations = await prisma.population.findMany({ where: { savegameId: fromSaveId } });
+  if (populations.length > 0) {
+    await prisma.population.createMany({
+      data: populations.map((p) => ({
+        savegameId: toSaveId,
+        countyId: titleIdMap[p.countyId] || p.countyId,
+        firstName: p.firstName,
+        lastName: p.lastName,
+        isMale: p.isMale,
+        birthDate: p.birthDate,
+        deathDate: p.deathDate,
+        isAlive: p.isAlive,
+        martial: p.martial,
+        stewardship: p.stewardship,
+        intrigue: p.intrigue,
+        learning: p.learning,
+        prowess: p.prowess,
+        health: p.health,
+        fertility: p.fertility,
+        traits: p.traits,
+        role: p.role,
+      })),
+    });
+  }
+
+  // Copy armies
+  const armies = await prisma.army.findMany({
+    where: { savegameId: fromSaveId },
+    include: { menAtArms: true },
+  });
+  for (const a of armies) {
+    const newArmy = await prisma.army.create({
+      data: {
+        savegameId: toSaveId,
+        ownerId: charIdMap[a.ownerId] || a.ownerId,
+        commanderId: a.commanderId ? (charIdMap[a.commanderId] || a.commanderId) : null,
+        name: a.name,
+        posX: a.posX, posY: a.posY,
+        targetX: a.targetX, targetY: a.targetY,
+        targetCountyId: a.targetCountyId ? (titleIdMap[a.targetCountyId] || a.targetCountyId) : null,
+        levies: a.levies, morale: a.morale,
+        isRaised: a.isRaised,
+        isMoving: a.isMoving, isSieging: a.isSieging,
+        siegeProgress: a.siegeProgress,
+      },
+    });
+    if (a.menAtArms.length > 0) {
+      await prisma.menAtArms.createMany({
+        data: a.menAtArms.map((m) => ({
+          armyId: newArmy.id,
+          type: m.type,
+          count: m.count,
+          maxCount: m.maxCount,
         })),
       });
     }

@@ -167,6 +167,8 @@ export const useMultiplayerStore = defineStore('multiplayer', {
 
       this.socket.on('ruler_married_population', (data) => {
         const game = useGameStore();
+        const char = game.characters.find((c) => c.id === data.characterId);
+        if (char) char._populationSpouseId = data.populationId;
         game.addNotification({ type: 'success', message: `Married ${data.populationName}!` });
       });
 

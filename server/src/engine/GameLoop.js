@@ -41,6 +41,11 @@ class GameLoop {
     state.sessionId = sessionId;
     state.pendingEvents = [];
     state.tickCount = 0;
+
+    // Load difficulty from session or savegame
+    const session = await this.prisma.gameSession.findUnique({ where: { id: sessionId } });
+    state.difficulty = session?.difficulty || 'normal';
+
     this.sessions.set(sessionId, state);
     return state;
   }
@@ -120,21 +125,31 @@ class GameLoop {
 
     // Army movement + battles
     const militaryEvents = this.militaryEngine.processDailyArmyMovement(
-      state.armies, counties, state.characters, state.wars
+      state.armies, counties, state.characters, state.wars, state.titles
     );
     result.events.push(...militaryEvents);
 
     // Sieges
     const siegeEvents = this.militaryEngine.processDailySieges(
-      state.armies, state.holdings, counties, state.wars
+      state.armies, state.holdings, counties, state.wars, state.titles
     );
     result.events.push(...siegeEvents);
 
-    // Set war endDate properly for ended wars
+    // Set war endDate properly for ended wars and disband armies
     for (const ev of [...militaryEvents, ...siegeEvents]) {
       if (ev.type === 'war_ended') {
         const war = state.wars.find((w) => w.id === ev.warId);
         if (war) war.endDate = currentDay;
+
+        // Disband all armies involved
+        for (const army of state.armies) {
+          if (army.ownerId === ev.attackerId || army.ownerId === ev.defenderId) {
+            army.isRaised = false;
+            army.isMoving = false;
+            army.isSieging = false;
+            army.siegeProgress = 0;
+          }
+        }
       }
     }
 
@@ -243,8 +258,8 @@ class GameLoop {
         dynasty.renown += this.dynastyEngine.calculateMonthlyRenown(dynasty, members, state.titles);
       }
 
-      // AI decisions
-      const aiActions = this.aiEngine.processAIDecisions(state.characters, state.titles, currentDay);
+      // AI decisions — full turn processing with difficulty
+      const aiActions = this.aiEngine.processAITurn(state, state.difficulty || 'normal', this.economyEngine, this.militaryEngine);
       result.events.push(...aiActions);
 
       // Random events for player characters
@@ -302,27 +317,64 @@ class GameLoop {
       result.updates.characterUpdates = state.characters
         .filter((c) => c.isAlive)
         .map((c) => ({
-          id: c.id, gold: c.gold, prestige: c.prestige, piety: c.piety,
+          id: c.id, firstName: c.firstName, lastName: c.lastName,
+          isMale: c.isMale, birthDate: c.birthDate,
+          gold: c.gold, prestige: c.prestige, piety: c.piety,
           health: c.health, stress: c.stress, isAlive: c.isAlive,
-          rulerFocus: c.rulerFocus,
+          fertility: c.fertility, rulerFocus: c.rulerFocus,
+          dynastyId: c.dynastyId, cultureId: c.cultureId, religionId: c.religionId,
+          fatherId: c.fatherId, spouseId: c.spouseId, isPlayer: c.isPlayer,
+          diplomacy: c.diplomacy, martial: c.martial, stewardship: c.stewardship,
+          intrigue: c.intrigue, learning: c.learning, prowess: c.prowess,
+          traits: (c.traits || []).map((t) => t.traitKey || t),
         }));
 
+      // Also include recently dead characters so client knows about deaths
+      const recentlyDead = state.characters.filter((c) => !c.isAlive && c.deathDate && c.deathDate >= currentDay - 30);
+      for (const dead of recentlyDead) {
+        if (!result.updates.characterUpdates.find((u) => u.id === dead.id)) {
+          result.updates.characterUpdates.push({
+            id: dead.id, firstName: dead.firstName, lastName: dead.lastName,
+            isMale: dead.isMale, birthDate: dead.birthDate,
+            gold: dead.gold, prestige: dead.prestige, piety: dead.piety,
+            health: dead.health, stress: dead.stress, isAlive: false,
+            deathDate: dead.deathDate, fertility: dead.fertility,
+            rulerFocus: dead.rulerFocus,
+            dynastyId: dead.dynastyId, fatherId: dead.fatherId,
+            spouseId: dead.spouseId, isPlayer: dead.isPlayer,
+            diplomacy: dead.diplomacy, martial: dead.martial,
+            stewardship: dead.stewardship, intrigue: dead.intrigue,
+            learning: dead.learning, prowess: dead.prowess,
+            traits: (dead.traits || []).map((t) => t.traitKey || t),
+          });
+        }
+      }
+
       result.updates.armyUpdates = state.armies
-        .filter((a) => a.isRaised)
         .map((a) => ({
           id: a.id, ownerId: a.ownerId, posX: a.posX, posY: a.posY,
           targetX: a.targetX, targetY: a.targetY, levies: a.levies,
           morale: a.morale, isRaised: a.isRaised, isMoving: a.isMoving,
           isSieging: a.isSieging, siegeProgress: a.siegeProgress,
           targetCountyId: a.targetCountyId,
+          commanderId: a.commanderId, name: a.name,
           menAtArms: (a.menAtArms || []).map((m) => ({ type: m.type, count: m.count, maxCount: m.maxCount })),
         }));
 
       result.updates.populationCount = state.populations.filter((p) => p.isAlive).length;
 
+      // Send title ownership updates (for war annexation, inheritance, etc.)
+      result.updates.titleUpdates = state.titles
+        .filter((t) => t.holderId)
+        .map((t) => ({ id: t.id, holderId: t.holderId }));
+
       result.updates.warUpdates = state.wars
-        .filter((w) => !w.endDate)
-        .map((w) => ({ id: w.id, warScore: w.warScore, attackerId: w.attackerId, defenderId: w.defenderId }));
+        .map((w) => ({
+          id: w.id, warScore: w.warScore, attackerId: w.attackerId,
+          defenderId: w.defenderId, name: w.name, casusBelli: w.casusBelli,
+          startDate: w.startDate, endDate: w.endDate, result: w.result,
+          targetTitle: w.targetTitle,
+        }));
     }
 
     // Send army positions every tick if armies are moving
@@ -337,6 +389,8 @@ class GameLoop {
 
   async processCharacterDeath(deadChar, state, result) {
     const heldTitles = state.titles.filter((t) => t.holderId === deadChar.id);
+    let primaryHeir = null;
+
     for (const title of heldTitles) {
       const succession = this.titleEngine.resolveTitleSuccession(title, deadChar, state.characters, state.titles);
       if (succession) {
@@ -344,11 +398,44 @@ class GameLoop {
           const t = state.titles.find((t) => t.id === s.titleId);
           if (t) {
             t.holderId = s.heirId;
+            if (!primaryHeir) primaryHeir = s.heirId;
             result.events.push({ type: 'title_inherited', titleId: s.titleId, heirId: s.heirId, previousHolderId: deadChar.id });
           }
         }
       }
     }
+
+    // If the dead character was a player, switch control to their heir
+    if (deadChar.isPlayer && primaryHeir) {
+      const heir = state.characters.find((c) => c.id === primaryHeir);
+      if (heir) {
+        deadChar.isPlayer = false;
+        heir.isPlayer = true;
+
+        // Update session user in DB to point to heir
+        try {
+          const sessionUsers = await this.prisma.sessionUser.findMany({
+            where: { sessionId: state.sessionId, characterId: deadChar.id },
+          });
+          for (const su of sessionUsers) {
+            await this.prisma.sessionUser.update({
+              where: { id: su.id },
+              data: { characterId: heir.id },
+            });
+          }
+        } catch (e) {
+          console.warn('Failed to update session user for succession:', e.message);
+        }
+
+        result.events.push({
+          type: 'player_heir_succession',
+          deadRulerId: deadChar.id,
+          heirId: heir.id,
+          heirName: `${heir.firstName} ${heir.lastName}`,
+        });
+      }
+    }
+
     if (deadChar.dynastyId) {
       const dynasty = state.dynasties.find((d) => d.id === deadChar.dynastyId);
       if (dynasty && dynasty.headId === deadChar.id) {
@@ -393,19 +480,231 @@ class GameLoop {
         where: { id: state.savegameId },
         data: { gameDate: state.gameDate, gameData: { eventQueue: state.eventQueue.toJSON(), tickCount: state.tickCount } },
       });
+
+      // Save characters
       for (const char of state.characters) {
-        if (!char.id || typeof char.id !== 'number' || char.id > 1e12) continue;
+        if (!char.id || typeof char.id !== 'number') continue;
+
+        if (char.id > 1e12) {
+          // New character born during gameplay — insert into DB
+          try {
+            const created = await this.prisma.character.create({
+              data: {
+                savegameId: state.savegameId,
+                firstName: char.firstName, lastName: char.lastName,
+                isMale: char.isMale, birthDate: char.birthDate,
+                deathDate: char.deathDate || null,
+                isAlive: char.isAlive, isPlayer: char.isPlayer || false,
+                diplomacy: char.diplomacy || 5, martial: char.martial || 5,
+                stewardship: char.stewardship || 5, intrigue: char.intrigue || 5,
+                learning: char.learning || 5, prowess: char.prowess || 5,
+                health: char.health, fertility: char.fertility,
+                stress: char.stress || 0, piety: char.piety || 0,
+                prestige: char.prestige || 0, gold: char.gold || 0,
+                geneticTraits: char.geneticTraits || [],
+                lifestyleFocus: char.lifestyleFocus, lifestyleXp: char.lifestyleXp,
+                lifestylePerks: char.lifestylePerks, rulerFocus: char.rulerFocus,
+                dynastyId: char.dynastyId || null,
+                fatherId: (char.fatherId && char.fatherId < 1e12) ? char.fatherId : null,
+                spouseId: (char.spouseId && char.spouseId < 1e12) ? char.spouseId : null,
+                cultureId: char.cultureId || null,
+                religionId: char.religionId || null,
+              },
+            });
+            const oldId = char.id;
+            char.id = created.id; // Update in-memory ID to real DB ID
+
+            // Update any references to old ID (children's fatherId, title holderId, army ownerId)
+            for (const c of state.characters) {
+              if (c.fatherId === oldId) c.fatherId = created.id;
+              if (c.spouseId === oldId) c.spouseId = created.id;
+            }
+            for (const t of state.titles) {
+              if (t.holderId === oldId) t.holderId = created.id;
+            }
+            for (const a of state.armies) {
+              if (a.ownerId === oldId) a.ownerId = created.id;
+              if (a.commanderId === oldId) a.commanderId = created.id;
+            }
+          } catch (e) {
+            console.warn('Failed to create character:', char.firstName, e.message);
+          }
+          continue;
+        }
+
         await this.prisma.character.update({
           where: { id: char.id },
-          data: { isAlive: char.isAlive, deathDate: char.deathDate, health: char.health, stress: char.stress, gold: char.gold, prestige: char.prestige, piety: char.piety, fertility: char.fertility, lifestyleFocus: char.lifestyleFocus, lifestyleXp: char.lifestyleXp, lifestylePerks: char.lifestylePerks, rulerFocus: char.rulerFocus, spouseId: char.spouseId },
+          data: {
+            isAlive: char.isAlive, deathDate: char.deathDate, health: char.health,
+            stress: char.stress, gold: char.gold, prestige: char.prestige, piety: char.piety,
+            fertility: char.fertility, lifestyleFocus: char.lifestyleFocus,
+            lifestyleXp: char.lifestyleXp, lifestylePerks: char.lifestylePerks,
+            rulerFocus: char.rulerFocus, spouseId: char.spouseId, isPlayer: char.isPlayer,
+          },
         });
       }
+
+      // Save dynasties
       for (const dynasty of state.dynasties) {
         await this.prisma.dynasty.update({ where: { id: dynasty.id }, data: { headId: dynasty.headId, renown: dynasty.renown, perks: dynasty.perks } });
       }
+
+      // Save titles (holder changes from wars/annexation)
       for (const title of state.titles) {
         await this.prisma.title.update({ where: { id: title.id }, data: { holderId: title.holderId } });
       }
+
+      // Save armies — upsert to handle both new AI armies and existing ones
+      for (const army of state.armies) {
+        if (!army.id || army.id > 1e12) {
+          // New army created during gameplay (AI or dynamic) — insert
+          try {
+            const created = await this.prisma.army.create({
+              data: {
+                savegameId: state.savegameId,
+                ownerId: army.ownerId,
+                commanderId: army.commanderId || army.ownerId,
+                name: army.name,
+                posX: army.posX, posY: army.posY,
+                targetX: army.targetX || null, targetY: army.targetY || null,
+                targetCountyId: army.targetCountyId || null,
+                levies: army.levies, morale: army.morale,
+                isRaised: army.isRaised,
+                isMoving: army.isMoving || false,
+                isSieging: army.isSieging || false,
+                siegeProgress: army.siegeProgress || 0,
+              },
+            });
+            army.id = created.id; // Update in-memory ID to real DB ID
+          } catch (e) {
+            console.warn('Failed to create army:', e.message);
+          }
+        } else {
+          // Existing army — update
+          try {
+            await this.prisma.army.update({
+              where: { id: army.id },
+              data: {
+                posX: army.posX, posY: army.posY,
+                targetX: army.targetX || null, targetY: army.targetY || null,
+                targetCountyId: army.targetCountyId || null,
+                levies: army.levies, morale: army.morale,
+                isRaised: army.isRaised,
+                isMoving: army.isMoving || false,
+                isSieging: army.isSieging || false,
+                siegeProgress: army.siegeProgress || 0,
+              },
+            });
+          } catch (e) {
+            console.warn('Failed to update army:', e.message);
+          }
+        }
+      }
+
+      // Save wars — upsert
+      for (const war of state.wars) {
+        if (!war.id || war.id > 1e12) {
+          try {
+            const created = await this.prisma.war.create({
+              data: {
+                savegameId: state.savegameId,
+                name: war.name, casusBelli: war.casusBelli,
+                attackerId: war.attackerId, defenderId: war.defenderId,
+                targetTitle: war.targetTitle || null,
+                warScore: war.warScore, startDate: war.startDate,
+                endDate: war.endDate || null, result: war.result || null,
+              },
+            });
+            war.id = created.id;
+          } catch (e) {
+            console.warn('Failed to create war:', e.message);
+          }
+        } else {
+          try {
+            await this.prisma.war.update({
+              where: { id: war.id },
+              data: {
+                warScore: war.warScore,
+                endDate: war.endDate || null,
+                result: war.result || null,
+              },
+            });
+          } catch (e) {
+            console.warn('Failed to update war:', e.message);
+          }
+        }
+      }
+
+      // Save holdings (development, buildings)
+      for (const holding of state.holdings) {
+        if (!holding.id || holding.id > 1e12) continue;
+        try {
+          await this.prisma.holding.update({
+            where: { id: holding.id },
+            data: { development: holding.development },
+          });
+          // Save building state
+          for (const b of (holding.buildings || [])) {
+            if (!b.id || b.id > 1e12) continue;
+            try {
+              await this.prisma.building.update({
+                where: { id: b.id },
+                data: { level: b.level, isBuilding: b.isBuilding, buildDays: b.buildDays },
+              });
+            } catch (e) { /* building may have been created in-memory */ }
+          }
+        } catch (e) {
+          console.warn('Failed to update holding:', e.message);
+        }
+      }
+
+      // Save populations
+      for (const pop of state.populations) {
+        if (!pop.id) continue;
+
+        if (pop.id > 1e12) {
+          // New population born during gameplay — insert into DB
+          try {
+            const created = await this.prisma.population.create({
+              data: {
+                savegameId: state.savegameId,
+                countyId: pop.countyId,
+                firstName: pop.firstName, lastName: pop.lastName,
+                isMale: pop.isMale, birthDate: pop.birthDate,
+                deathDate: pop.deathDate || null,
+                isAlive: pop.isAlive,
+                martial: pop.martial || 3, stewardship: pop.stewardship || 3,
+                intrigue: pop.intrigue || 3, learning: pop.learning || 3,
+                prowess: pop.prowess || 3, health: pop.health,
+                fertility: pop.fertility || 0.5,
+                traits: pop.traits || [],
+                role: pop.role || null,
+                spouseId: null, // Will be re-linked after all pops saved
+                spouseType: pop.spouseType || null,
+                fatherId: null, motherId: null,
+              },
+            });
+            pop.id = created.id; // Update in-memory ID
+          } catch (e) {
+            console.warn('Failed to create population:', e.message);
+          }
+          continue;
+        }
+
+        try {
+          await this.prisma.population.update({
+            where: { id: pop.id },
+            data: {
+              isAlive: pop.isAlive, deathDate: pop.deathDate || null,
+              health: pop.health, role: pop.role || null,
+              spouseId: pop.spouseId || null, spouseType: pop.spouseType || null,
+            },
+          });
+        } catch (e) {
+          console.warn('Failed to update population:', e.message);
+        }
+      }
+
       console.log(`Game saved for session ${state.sessionId} at day ${state.gameDate}`);
     } catch (err) {
       console.error('Save error:', err);

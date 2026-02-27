@@ -87,6 +87,7 @@ function setupSocketManager(io, prisma) {
         // Send initial game state to the joining player
         socket.emit('game_state', {
           gameDate: state.gameDate,
+          difficulty: state.difficulty || 'normal',
           playerCharacterId: myCharacterId,
           characters: state.characters.map((c) => ({
             id: c.id, firstName: c.firstName, lastName: c.lastName,
@@ -473,6 +474,9 @@ function setupSocketManager(io, prisma) {
       pop.spouseId = char.id;
       pop.spouseType = 'character';
 
+      // Track population spouse on the character side (in-memory, not DB FK)
+      char._populationSpouseId = pop.id;
+
       io.to(`session_${socket.sessionId}`).emit('ruler_married_population', {
         characterId: char.id, populationId: pop.id,
         populationName: `${pop.firstName} ${pop.lastName}`,
@@ -522,15 +526,41 @@ function setupSocketManager(io, prisma) {
         socket.emit('error', { message: 'Already at war with this ruler' });
         return;
       }
-      const war = {
-        id: Date.now(), savegameId: state.savegameId,
-        name: `${attacker.firstName}'s ${(casusBelli || 'conquest').replace(/_/g, ' ')} against ${defender.firstName}`,
-        casusBelli: casusBelli || 'conquest',
-        attackerId: attacker.id, defenderId: defender.id,
-        targetTitle: targetTitleKey || null,
-        warScore: 0, startDate: state.gameDate, endDate: null, result: null,
-        participants: [],
-      };
+      // Create war in DB
+      let war;
+      try {
+        const dbWar = await prisma.war.create({
+          data: {
+            savegameId: state.savegameId,
+            name: `${attacker.firstName}'s ${(casusBelli || 'conquest').replace(/_/g, ' ')} against ${defender.firstName}`,
+            casusBelli: casusBelli || 'conquest',
+            attackerId: attacker.id,
+            defenderId: defender.id,
+            targetTitle: targetTitleKey || null,
+            warScore: 0,
+            startDate: state.gameDate,
+          },
+        });
+        war = {
+          id: dbWar.id, savegameId: state.savegameId,
+          name: dbWar.name, casusBelli: dbWar.casusBelli,
+          attackerId: dbWar.attackerId, defenderId: dbWar.defenderId,
+          targetTitle: dbWar.targetTitle,
+          warScore: 0, startDate: state.gameDate, endDate: null, result: null,
+          participants: [],
+        };
+      } catch (e) {
+        console.error('Failed to create war in DB:', e);
+        war = {
+          id: Date.now(), savegameId: state.savegameId,
+          name: `${attacker.firstName}'s ${(casusBelli || 'conquest').replace(/_/g, ' ')} against ${defender.firstName}`,
+          casusBelli: casusBelli || 'conquest',
+          attackerId: attacker.id, defenderId: defender.id,
+          targetTitle: targetTitleKey || null,
+          warScore: 0, startDate: state.gameDate, endDate: null, result: null,
+          participants: [],
+        };
+      }
       state.wars.push(war);
       attacker.prestige -= 50;
       io.to(`session_${socket.sessionId}`).emit('war_declared', { war });
@@ -615,7 +645,10 @@ function setupSocketManager(io, prisma) {
       });
       if (!sessionUser?.characterId) return;
       const char = state.characters.find((c) => c.id === sessionUser.characterId);
-      if (!char) return;
+      if (!char || !char.isAlive) {
+        socket.emit('error', { message: char ? 'Your ruler is dead' : 'Character not found' });
+        return;
+      }
       let army = state.armies.find((a) => a.ownerId === char.id);
       if (army && army.isRaised) {
         socket.emit('error', { message: 'Army already raised' });
@@ -630,17 +663,71 @@ function setupSocketManager(io, prisma) {
         army.isSieging = false;
         army.siegeProgress = 0;
         if (capital) { army.posX = capital.mapX; army.posY = capital.mapY; }
+        // Persist to DB
+        if (army.id && army.id < 1e12) {
+          await prisma.army.update({
+            where: { id: army.id },
+            data: { isRaised: true, levies: army.levies, morale: army.morale, posX: army.posX, posY: army.posY, isMoving: false, isSieging: false, siegeProgress: 0 },
+          }).catch(() => {});
+        }
       } else {
         const levies = gameLoop.economyEngine.calculateLevies(char.id, state.titles, state.holdings);
-        army = {
-          id: Date.now(), savegameId: state.savegameId, ownerId: char.id,
-          commanderId: char.id, name: `${char.firstName}'s Host`,
-          posX: capital?.mapX || 400, posY: capital?.mapY || 300,
-          levies: Math.max(100, levies), morale: 1.0, isRaised: true,
-          isMoving: false, isSieging: false, siegeProgress: 0,
-          targetCountyId: null, targetX: null, targetY: null,
-          menAtArms: [],
-        };
+        const armyName = `${char.firstName}'s Host`;
+        const armyPosX = capital?.mapX || 400;
+        const armyPosY = capital?.mapY || 300;
+        const armyLevies = Math.max(100, levies);
+
+        // Try to create in DB first to get real ID
+        // If character has in-memory ID (born during gameplay), create in-memory army
+        if (char.id && char.id < 1e12) {
+          try {
+            const dbArmy = await prisma.army.create({
+              data: {
+                savegameId: state.savegameId,
+                ownerId: char.id,
+                commanderId: char.id,
+                name: armyName,
+                posX: armyPosX, posY: armyPosY,
+                levies: armyLevies, morale: 1.0,
+                isRaised: true, isMoving: false,
+                isSieging: false, siegeProgress: 0,
+              },
+            });
+            army = {
+              id: dbArmy.id, savegameId: state.savegameId, ownerId: char.id,
+              commanderId: char.id, name: dbArmy.name,
+              posX: dbArmy.posX, posY: dbArmy.posY,
+              levies: dbArmy.levies, morale: 1.0, isRaised: true,
+              isMoving: false, isSieging: false, siegeProgress: 0,
+              targetCountyId: null, targetX: null, targetY: null,
+              menAtArms: [],
+            };
+          } catch (e) {
+            console.error('Failed to create army in DB, creating in-memory:', e.message);
+            army = {
+              id: Date.now() + Math.floor(Math.random() * 10000),
+              savegameId: state.savegameId, ownerId: char.id,
+              commanderId: char.id, name: armyName,
+              posX: armyPosX, posY: armyPosY,
+              levies: armyLevies, morale: 1.0, isRaised: true,
+              isMoving: false, isSieging: false, siegeProgress: 0,
+              targetCountyId: null, targetX: null, targetY: null,
+              menAtArms: [],
+            };
+          }
+        } else {
+          // Character has in-memory ID — create army in-memory only
+          army = {
+            id: Date.now() + Math.floor(Math.random() * 10000),
+            savegameId: state.savegameId, ownerId: char.id,
+            commanderId: char.id, name: armyName,
+            posX: armyPosX, posY: armyPosY,
+            levies: armyLevies, morale: 1.0, isRaised: true,
+            isMoving: false, isSieging: false, siegeProgress: 0,
+            targetCountyId: null, targetX: null, targetY: null,
+            menAtArms: [],
+          };
+        }
         state.armies.push(army);
       }
       io.to(`session_${socket.sessionId}`).emit('army_update', {
