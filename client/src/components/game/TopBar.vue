@@ -43,7 +43,7 @@ import { useMultiplayerStore } from '../../stores/multiplayer';
 const game = useGameStore();
 const mp = useMultiplayerStore();
 
-const playerChar = computed(() => game.playerCharacters[0]);
+const playerChar = computed(() => game.playerCharacter || game.playerCharacters[0]);
 
 function togglePause() {
   if (game.isPaused) mp.resumeGame();

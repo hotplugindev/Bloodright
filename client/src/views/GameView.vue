@@ -88,6 +88,8 @@ const mp = useMultiplayerStore();
 const selectedRuler = ref(null);
 
 const showCharacterSelect = computed(() => {
+  // Skip if we already have a persisted ruler (restored from server)
+  if (game.playerCharacterId) return false;
   return mp.status === 'in_game' && game.playerCharacters.length === 0;
 });
 

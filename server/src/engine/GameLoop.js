@@ -333,6 +333,16 @@ class GameLoop {
       characterCount: state.characters.filter((c) => c.isAlive).length,
     };
 
+    // Include character resource updates on monthly ticks
+    if (currentDay % 30 === 0) {
+      result.updates.characterUpdates = state.characters
+        .filter((c) => c.isAlive)
+        .map((c) => ({
+          id: c.id, gold: c.gold, prestige: c.prestige, piety: c.piety,
+          health: c.health, stress: c.stress, isAlive: c.isAlive,
+        }));
+    }
+
     return result;
   }
 
