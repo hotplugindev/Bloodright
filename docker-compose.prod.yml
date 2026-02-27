@@ -1,49 +1,96 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:16-alpine
-    restart: unless-stopped
+    container_name: bloodright-postgres-prod
+    expose:
+      - "5432"
     environment:
-      POSTGRES_USER: bloodright
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: bloodright
+      - POSTGRES_USER=${DB_USER:-bloodright}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-bloodright}
+      - POSTGRES_DB=${DB_NAME:-bloodright}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata_prod:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bloodright"]
-      interval: 5s
+      test:
+        ["CMD-SHELL", "pg_isready -U ${DB_USER:-bloodright} -d ${DB_NAME:-bloodright}"]
+      interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 10s
+    networks:
+      - internal
+    restart: always
 
   backend:
     build:
       context: ./server
       dockerfile: Dockerfile
       target: production
-    restart: unless-stopped
+    container_name: bloodright-backend-prod
+    expose:
+      - "3000"
     environment:
-      NODE_ENV: production
-      DATABASE_URL: postgresql://bloodright:${POSTGRES_PASSWORD}@postgres:5432/bloodright?schema=public
-      JWT_SECRET: ${JWT_SECRET}
-      PORT: 3000
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://${DB_USER:-bloodright}:${DB_PASSWORD:-bloodright}@postgres:5432/${DB_NAME:-bloodright}?schema=public
+      - JWT_SECRET=${JWT_SECRET:-change-me-use-a-strong-random-secret-in-production}
     depends_on:
       postgres:
         condition: service_healthy
     command: >
-      sh -c "npx prisma db push --accept-data-loss && node src/index.js"
+      sh -c "npx prisma db push --accept-data-loss && (npx prisma db seed || true) && node src/index.js"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bloodright-api.rule=Host(`bloodright.gberti.com`) && (PathPrefix(`/api`) || PathPrefix(`/socket.io`))"
+      - "traefik.http.routers.bloodright-api.entrypoints=websecure"
+      - "traefik.http.routers.bloodright-api.tls=true"
+      - "traefik.http.routers.bloodright-api.tls.certresolver=leresolver"
+      - "traefik.http.services.bloodright-api.loadbalancer.server.port=3000"
+      - "traefik.docker.network=traefik"
+    networks:
+      - internal
+      - traefik
+    restart: always
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3000/api/health').then(r => { if (!r.ok) process.exit(1); }).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
-  nginx:
-    image: nginx:alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./client/dist:/usr/share/nginx/html:ro
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      target: production
+    container_name: bloodright-frontend-prod
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bloodright.rule=Host(`bloodright.gberti.com`)"
+      - "traefik.http.routers.bloodright.entrypoints=websecure"
+      - "traefik.http.routers.bloodright.tls=true"
+      - "traefik.http.routers.bloodright.tls.certresolver=leresolver"
+      - "traefik.http.routers.bloodright.priority=1"
+      - "traefik.http.services.bloodright.loadbalancer.server.port=80"
+      - "traefik.docker.network=traefik"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    networks:
+      - internal
+      - traefik
+    restart: always
 
 volumes:
-  pgdata:
+  pgdata_prod:
+
+networks:
+  internal:
+  traefik:
+    external: true
