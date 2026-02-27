@@ -1,0 +1,52 @@
+[
+  {
+    "key": "solarian",
+    "name": "Solarian Faith",
+    "family": "solar",
+    "description": "Worship of the Radiant Sun, bringer of order and justice",
+    "doctrines": ["monogamy", "clerical_hierarchy", "armed_clergy"],
+    "tenets": ["divine_right", "just_war", "communal_charity"],
+    "hostility": { "lunarian": "hostile", "old_ways": "evil", "merchant_creed": "righteous" },
+    "bonuses": { "diplomacy": 1, "martial": 1 }
+  },
+  {
+    "key": "lunarian",
+    "name": "Lunarian Mysteries",
+    "family": "lunar",
+    "description": "Devotion to the Twin Moons and the cycles of fate",
+    "doctrines": ["polygamy_allowed", "lay_clergy", "pacifism"],
+    "tenets": ["astral_communion", "ritual_dance", "prophecy"],
+    "hostility": { "solarian": "hostile", "old_ways": "righteous", "merchant_creed": "righteous" },
+    "bonuses": { "learning": 2, "intrigue": 1 }
+  },
+  {
+    "key": "old_ways",
+    "name": "The Old Ways",
+    "family": "pagan",
+    "description": "Ancestral nature worship honoring the spirits of land and sky",
+    "doctrines": ["concubinage", "elder_council", "human_sacrifice"],
+    "tenets": ["ancestor_veneration", "sacred_groves", "blood_offerings"],
+    "hostility": { "solarian": "evil", "lunarian": "righteous", "merchant_creed": "hostile" },
+    "bonuses": { "martial": 2, "prowess": 1 }
+  },
+  {
+    "key": "merchant_creed",
+    "name": "The Merchant Creed",
+    "family": "philosophical",
+    "description": "A philosophical faith centered on fair trade and oaths of commerce",
+    "doctrines": ["monogamy", "lay_clergy", "temporal_charity"],
+    "tenets": ["sacred_contracts", "wealth_virtue", "hospitality"],
+    "hostility": { "solarian": "righteous", "lunarian": "righteous", "old_ways": "hostile" },
+    "bonuses": { "stewardship": 2, "diplomacy": 1 }
+  },
+  {
+    "key": "iron_covenant",
+    "name": "The Iron Covenant",
+    "family": "martial",
+    "description": "A warrior faith that sees combat as sacred communion",
+    "doctrines": ["polygamy_allowed", "warrior_monks", "armed_clergy"],
+    "tenets": ["trial_by_combat", "valor_in_death", "sacred_arms"],
+    "hostility": { "solarian": "hostile", "lunarian": "evil", "old_ways": "righteous", "merchant_creed": "hostile" },
+    "bonuses": { "martial": 3, "prowess": 2 }
+  }
+]

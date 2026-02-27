@@ -1,0 +1,126 @@
+{
+  "castle_walls": {
+    "name": "Castle Walls",
+    "type": "castle",
+    "maxLevel": 4,
+    "costs": [100, 200, 400, 800],
+    "buildDays": [180, 270, 365, 540],
+    "bonuses": {
+      "garrison": [200, 400, 700, 1100],
+      "fortLevel": [1, 2, 3, 4]
+    },
+    "description": "Stone fortifications that protect the holding"
+  },
+  "barracks": {
+    "name": "Barracks",
+    "type": "castle",
+    "maxLevel": 3,
+    "costs": [75, 150, 300],
+    "buildDays": [120, 180, 270],
+    "bonuses": {
+      "levies": [150, 300, 500],
+      "levy_reinforcement": [0.05, 0.10, 0.15]
+    },
+    "description": "Training grounds for soldiers"
+  },
+  "armory": {
+    "name": "Armory",
+    "type": "castle",
+    "maxLevel": 3,
+    "costs": [100, 200, 400],
+    "buildDays": [150, 240, 360],
+    "bonuses": {
+      "maa_damage": [0.10, 0.20, 0.30],
+      "maa_toughness": [0.05, 0.10, 0.15],
+      "knights": [1, 2, 3]
+    },
+    "description": "Weapons and armor for elite troops"
+  },
+  "manor_house": {
+    "name": "Manor House",
+    "type": "castle",
+    "maxLevel": 3,
+    "costs": [60, 120, 250],
+    "buildDays": [90, 150, 240],
+    "bonuses": {
+      "tax": [0.5, 1.0, 2.0],
+      "development": [0.1, 0.2, 0.3]
+    },
+    "description": "A fine residence that generates income"
+  },
+  "hunting_grounds": {
+    "name": "Hunting Grounds",
+    "type": "castle",
+    "maxLevel": 2,
+    "costs": [80, 160],
+    "buildDays": [120, 180],
+    "bonuses": {
+      "prestige": [0.2, 0.5],
+      "prowess": [1, 2],
+      "stress_loss": [5, 10]
+    },
+    "description": "Royal hunting preserve"
+  },
+  "market": {
+    "name": "Market",
+    "type": "city",
+    "maxLevel": 3,
+    "costs": [50, 100, 200],
+    "buildDays": [90, 120, 180],
+    "bonuses": {
+      "tax": [1.0, 2.0, 4.0],
+      "development": [0.2, 0.3, 0.5]
+    },
+    "description": "Bustling trade center"
+  },
+  "guild_hall": {
+    "name": "Guild Hall",
+    "type": "city",
+    "maxLevel": 3,
+    "costs": [75, 150, 300],
+    "buildDays": [120, 180, 270],
+    "bonuses": {
+      "tax": [0.5, 1.0, 2.0],
+      "development": [0.3, 0.5, 0.8]
+    },
+    "description": "Headquarters for artisan guilds"
+  },
+  "monastery": {
+    "name": "Monastery",
+    "type": "temple",
+    "maxLevel": 3,
+    "costs": [60, 120, 250],
+    "buildDays": [120, 180, 270],
+    "bonuses": {
+      "piety": [0.5, 1.0, 2.0],
+      "learning": [1, 2, 3]
+    },
+    "description": "Sacred place of worship and learning"
+  },
+  "pilgrim_road": {
+    "name": "Pilgrim Road",
+    "type": "temple",
+    "maxLevel": 2,
+    "costs": [50, 100],
+    "buildDays": [90, 150],
+    "bonuses": {
+      "piety": [0.3, 0.6],
+      "tax": [0.3, 0.6],
+      "development": [0.1, 0.2]
+    },
+    "description": "A maintained road for the faithful"
+  },
+  "farm_estate": {
+    "name": "Farm Estate",
+    "type": "castle",
+    "maxLevel": 3,
+    "costs": [40, 80, 160],
+    "buildDays": [60, 90, 150],
+    "bonuses": {
+      "tax": [0.3, 0.6, 1.2],
+      "levies": [50, 100, 200],
+      "supply": [50, 100, 200]
+    },
+    "description": "Productive agricultural land"
+  }
+}

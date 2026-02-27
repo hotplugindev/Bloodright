@@ -1,0 +1,459 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Authentication ───────────────────────────────────────────────
+
+model User {
+  id           Int       @id @default(autoincrement())
+  username     String    @unique
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  savegames    Savegame[]
+  sessionUsers SessionUser[]
+
+  @@map("users")
+}
+
+// ─── Game Persistence ─────────────────────────────────────────────
+
+model Savegame {
+  id          Int      @id @default(autoincrement())
+  name        String
+  userId      Int      @map("user_id")
+  user        User     @relation(fields: [userId], references: [id])
+  gameDate    Int      @default(0) @map("game_date") // days since game epoch
+  gameData    Json?    @map("game_data") // serialized volatile state
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  session     GameSession?
+  characters  Character[]
+  dynasties   Dynasty[]
+  titles      Title[]
+  holdings    Holding[]
+  wars        War[]
+  religions   Religion[]
+  cultures    Culture[]
+  events      GameEvent[]
+  armies      Army[]
+  schemes     Scheme[]
+  alliances   Alliance[]
+  factions    Faction[]
+
+  @@map("savegames")
+}
+
+model GameSession {
+  id          Int       @id @default(autoincrement())
+  inviteCode  String    @unique @map("invite_code")
+  savegameId  Int       @unique @map("savegame_id")
+  savegame    Savegame  @relation(fields: [savegameId], references: [id])
+  hostUserId  Int       @map("host_user_id")
+  status      String    @default("lobby") // lobby | playing | paused
+  tickSpeed   Int       @default(1) @map("tick_speed")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  users       SessionUser[]
+
+  @@map("game_sessions")
+}
+
+model SessionUser {
+  id          Int         @id @default(autoincrement())
+  sessionId   Int         @map("session_id")
+  session     GameSession @relation(fields: [sessionId], references: [id])
+  userId      Int         @map("user_id")
+  user        User        @relation(fields: [userId], references: [id])
+  characterId Int?        @map("character_id")
+  isReady     Boolean     @default(false) @map("is_ready")
+  joinedAt    DateTime    @default(now()) @map("joined_at")
+
+  @@unique([sessionId, userId])
+  @@map("session_users")
+}
+
+// ─── Character System ─────────────────────────────────────────────
+
+model Character {
+  id           Int      @id @default(autoincrement())
+  savegameId   Int      @map("savegame_id")
+  savegame     Savegame @relation(fields: [savegameId], references: [id], onDelete: Cascade)
+
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  isMale       Boolean  @default(true) @map("is_male")
+  birthDate    Int      @map("birth_date")   // game day
+  deathDate    Int?     @map("death_date")
+  isAlive      Boolean  @default(true) @map("is_alive")
+  isPlayer     Boolean  @default(false) @map("is_player")
+
+  // Stats
+  diplomacy    Int      @default(5)
+  martial      Int      @default(5)
+  stewardship  Int      @default(5)
+  intrigue     Int      @default(5)
+  learning     Int      @default(5)
+  prowess      Int      @default(5)
+
+  // Vital
+  health       Float    @default(5.0)
+  fertility    Float    @default(0.5)
+  stress       Int      @default(0)
+  piety        Float    @default(0)
+  prestige     Float    @default(0)
+  gold         Float    @default(0)
+
+  // Genetics
+  geneticTraits Json?   @map("genetic_traits") // array of genetic trait keys
+
+  // Lifestyle
+  lifestyleFocus String? @map("lifestyle_focus") // diplomacy|martial|stewardship|intrigue|learning
+  lifestyleXp   Json?   @map("lifestyle_xp") // {diplomacy:0,...}
+  lifestylePerks Json?  @map("lifestyle_perks") // array of perk keys unlocked
+
+  // Relations
+  dynastyId    Int?     @map("dynasty_id")
+  dynasty      Dynasty? @relation(fields: [dynastyId], references: [id])
+  fatherId     Int?     @map("father_id")
+  father       Character? @relation("ParentChild", fields: [fatherId], references: [id])
+  children     Character[] @relation("ParentChild")
+  spouseId     Int?     @map("spouse_id")
+  spouse       Character? @relation("Spouse", fields: [spouseId], references: [id])
+  spouseOf     Character[] @relation("Spouse")
+
+  cultureId    Int?     @map("culture_id")
+  culture      Culture? @relation(fields: [cultureId], references: [id])
+  religionId   Int?     @map("religion_id")
+  religion     Religion? @relation(fields: [religionId], references: [id])
+
+  // Title / realm
+  heldTitles   Title[]  @relation("TitleHolder")
+  claims       Title[]  @relation("TitleClaimant")
+
+  // Relationships
+  traits       CharacterTrait[]
+  relationshipsFrom Relationship[] @relation("RelFrom")
+  relationshipsTo   Relationship[] @relation("RelTo")
+  schemesOwned Scheme[] @relation("SchemeOwner")
+  schemesTarget Scheme[] @relation("SchemeTarget")
+  commandedArmies Army[]
+  factionMemberships FactionMember[]
+
+  @@index([savegameId])
+  @@index([dynastyId])
+  @@map("characters")
+}
+
+model CharacterTrait {
+  id          Int       @id @default(autoincrement())
+  characterId Int       @map("character_id")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  traitKey    String    @map("trait_key")
+
+  @@unique([characterId, traitKey])
+  @@map("character_traits")
+}
+
+model Relationship {
+  id          Int       @id @default(autoincrement())
+  fromId      Int       @map("from_id")
+  from        Character @relation("RelFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  toId        Int       @map("to_id")
+  to          Character @relation("RelTo", fields: [toId], references: [id], onDelete: Cascade)
+  type        String    // friend | rival | lover | nemesis | guardian | ward
+  opinion     Int       @default(0)
+
+  @@unique([fromId, toId, type])
+  @@map("relationships")
+}
+
+// ─── Dynasty System ───────────────────────────────────────────────
+
+model Dynasty {
+  id          Int       @id @default(autoincrement())
+  savegameId  Int       @map("savegame_id")
+  savegame    Savegame  @relation(fields: [savegameId], references: [id], onDelete: Cascade)
+  name        String
+  motto       String?
+  headId      Int?      @map("head_id")
+  parentId    Int?      @map("parent_id") // for cadet branches
+  renown      Float     @default(0)
+  perks       Json?     // array of unlocked perk keys
+
+  members     Character[]
+
+  @@index([savegameId])
+  @@map("dynasties")
+}
+
+// ─── Title Hierarchy ──────────────────────────────────────────────
+
+model Title {
+  id          Int       @id @default(autoincrement())
+  savegameId  Int       @map("savegame_id")
+  savegame    Savegame  @relation(fields: [savegameId], references: [id], onDelete: Cascade)
+  key         String    // e.g. "k_valdheim"
+  name        String    // "Kingdom of Valdheim"
+  tier        String    // barony | county | duchy | kingdom | empire
+  color       String    @default("#888888")
+
+  holderId    Int?      @map("holder_id")
+  holder      Character? @relation("TitleHolder", fields: [holderId], references: [id])
+  claimants   Character[] @relation("TitleClaimant")
+
+  // De jure hierarchy
+  deJureParentId Int?   @map("de_jure_parent_id")
+  deJureParent   Title? @relation("DeJure", fields: [deJureParentId], references: [id])
+  deJureChildren Title[] @relation("DeJure")
+
+  // Liege hierarchy (actual)
+  liegeId     Int?      @map("liege_id")
+  liege       Title?    @relation("LiegeVassal", fields: [liegeId], references: [id])
+  vassals     Title[]   @relation("LiegeVassal")
+
+  // Laws
+  successionLaw  String @default("partition") @map("succession_law") // primogeniture|partition|elective
+  genderLaw      String @default("male_preference") @map("gender_law")
+  vassalTaxRate  Float  @default(0.10) @map("vassal_tax_rate")
+  vassalLevyRate Float  @default(0.25) @map("vassal_levy_rate")
+
+  // County-level data
+  mapX        Float?    @map("map_x")
+  mapY        Float?    @map("map_y")
+  terrain     String?   // plains|hills|mountains|forest|desert|coast|marsh
+
+  holdings    Holding[]
+
+  @@unique([savegameId, key])
+  @@index([savegameId])
+  @@index([holderId])
+  @@map("titles")
+}
+
+// ─── Holdings & Economy ───────────────────────────────────────────
+
+model Holding {
+  id           Int      @id @default(autoincrement())
+  savegameId   Int      @map("savegame_id")
+  savegame     Savegame @relation(fields: [savegameId], references: [id], onDelete: Cascade)
+  titleId      Int      @map("title_id")
+  title        Title    @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  type         String   @default("castle") // castle | city | temple
+  development  Float    @default(1.0)
+
+  buildings    Building[]
+
+  @@index([titleId])
+  @@map("holdings")
+}
+
+model Building {
+  id          Int     @id @default(autoincrement())
+  holdingId   Int     @map("holding_id")
+  holding     Holding @relation(fields: [holdingId], references: [id], onDelete: Cascade)
+  buildingKey String  @map("building_key")
+  level       Int     @default(1)
+  isBuilding  Boolean @default(false) @map("is_building") // under construction
+  buildDays   Int     @default(0) @map("build_days") // days remaining
+
+  @@map("buildings")
+}
+
+// ─── Military ─────────────────────────────────────────────────────
+
+model War {
+  id           Int      @id @default(autoincrement())
+  savegameId   Int      @map("savegame_id")
+  savegame     Savegame @relation(fields: [savegameId], references: [id], onDelete: Cascade)
+  name         String
+  casusBelli   String   @map("casus_belli")
+  attackerId   Int      @map("attacker_id")
+  defenderId   Int      @map("defender_id")
+  targetTitle  String?  @map("target_title") // title key being fought over
+  warScore     Float    @default(0) @map("war_score") // -100 to 100
+  startDate    Int      @map("start_date")
+  endDate      Int?     @map("end_date")
+  result       String?  // attacker_victory | defender_victory | white_peace
+
+  participants WarParticipant[]
+
+  @@index([savegameId])
+  @@map("wars")
+}
+
+model WarParticipant {
+  id         Int    @id @default(autoincrement())
+  warId      Int    @map("war_id")
+  war        War    @relation(fields: [warId], references: [id], onDelete: Cascade)
+  characterId Int   @map("character_id")
+  side       String // attacker | defender
+  contribution Float @default(0)
+
+  @@unique([warId, characterId])
+  @@map("war_participants")
+}
+
+model Army {
+  id           Int       @id @default(autoincrement())
+  savegameId   Int       @map("savegame_id")
+  savegame     Savegame  @relation(fields: [savegameId], references: [id], onDelete: Cascade)
+  ownerId      Int       @map("owner_id")
+  commanderId  Int?      @map("commander_id")
+  commander    Character? @relation(fields: [commanderId], references: [id])
+  name         String
+  posX         Float     @map("pos_x")
+  posY         Float     @map("pos_y")
+  targetX      Float?    @map("target_x")
+  targetY      Float?    @map("target_y")
+  levies       Int       @default(0)
+  morale       Float     @default(1.0)
+  isRaised     Boolean   @default(false) @map("is_raised")
+
+  menAtArms    MenAtArms[]
+
+  @@index([savegameId])
+  @@map("armies")
+}
+
+model MenAtArms {
+  id         Int    @id @default(autoincrement())
+  armyId     Int    @map("army_id")
+  army       Army   @relation(fields: [armyId], references: [id], onDelete: Cascade)
+  type       String // pikemen | archers | cavalry | siege
+  count      Int    @default(100)
+  maxCount   Int    @default(100) @map("max_count")
+
+  @@map("men_at_arms")
+}
+
+// ─── Diplomacy ────────────────────────────────────────────────────
+
+model Alliance {
+  id         Int      @id @default(autoincrement())
+  savegameId Int      @map("savegame_id")
+  savegame   Savegame @relation(fields: [savegameId], references: [id], onDelete: Cascade)
+  char1Id    Int      @map("char1_id")
+  char2Id    Int      @map("char2_id")
+  reason     String   @default("marriage")
+  startDate  Int      @map("start_date")
+
+  @@unique([savegameId, char1Id, char2Id])
+  @@map("alliances")
+}
+
+model Faction {
+  id           Int      @id @default(autoincrement())
+  savegameId   Int      @map("savegame_id")
+  savegame     Savegame @relation(fields: [savegameId], references: [id], onDelete: Cascade)
+  type         String   // independence | claimant | liberty
+  targetId     Int      @map("target_id") // character being targeted
+  power        Float    @default(0) // military power ratio
+  isActive     Boolean  @default(true) @map("is_active")
+
+  members      FactionMember[]
+
+  @@index([savegameId])
+  @@map("factions")
+}
+
+model FactionMember {
+  id          Int       @id @default(autoincrement())
+  factionId   Int       @map("faction_id")
+  faction     Faction   @relation(fields: [factionId], references: [id], onDelete: Cascade)
+  characterId Int       @map("character_id")
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@unique([factionId, characterId])
+  @@map("faction_members")
+}
+
+// ─── Intrigue ─────────────────────────────────────────────────────
+
+model Scheme {
+  id          Int       @id @default(autoincrement())
+  savegameId  Int       @map("savegame_id")
+  savegame    Savegame  @relation(fields: [savegameId], references: [id], onDelete: Cascade)
+  ownerId     Int       @map("owner_id")
+  owner       Character @relation("SchemeOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  targetId    Int       @map("target_id")
+  target      Character @relation("SchemeTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  type        String    // murder | seduce | fabricate_claim | abduct
+  power       Float     @default(0)
+  secrecy     Float     @default(100)
+  progress    Float     @default(0)
+  isActive    Boolean   @default(true) @map("is_active")
+
+  @@index([savegameId])
+  @@map("schemes")
+}
+
+// ─── Religion ─────────────────────────────────────────────────────
+
+model Religion {
+  id          Int       @id @default(autoincrement())
+  savegameId  Int       @map("savegame_id")
+  savegame    Savegame  @relation(fields: [savegameId], references: [id], onDelete: Cascade)
+  key         String
+  name        String
+  familyKey   String    @map("family_key") // e.g. "solarian_family"
+  fervor      Float     @default(50)
+  doctrines   Json      // array of doctrine keys
+  tenets      Json      // array of tenet keys
+  hostility   Json?     // map of religion_key -> hostile|evil|righteous
+
+  characters  Character[]
+
+  @@unique([savegameId, key])
+  @@map("religions")
+}
+
+// ─── Culture ──────────────────────────────────────────────────────
+
+model Culture {
+  id           Int       @id @default(autoincrement())
+  savegameId   Int       @map("savegame_id")
+  savegame     Savegame  @relation(fields: [savegameId], references: [id], onDelete: Cascade)
+  key          String
+  name         String
+  groupKey     String    @map("group_key")
+  ethos        String    @default("bellicose")
+  traditions   Json      // array of tradition keys
+  innovations  Json      // array of unlocked innovation keys
+  innovationProgress Json? @map("innovation_progress") // {key: progress%}
+  bonuses      Json?     // calculated stat bonuses
+
+  characters   Character[]
+
+  @@unique([savegameId, key])
+  @@map("cultures")
+}
+
+// ─── Event Engine ─────────────────────────────────────────────────
+
+model GameEvent {
+  id          Int      @id @default(autoincrement())
+  savegameId  Int      @map("savegame_id")
+  savegame    Savegame @relation(fields: [savegameId], references: [id], onDelete: Cascade)
+  eventKey    String   @map("event_key")
+  characterId Int?     @map("character_id")
+  triggerDay  Int      @map("trigger_day")
+  data        Json?    // event-specific payload
+  isProcessed Boolean  @default(false) @map("is_processed")
+  chainId     String?  @map("chain_id") // groups multi-step chains
+
+  @@index([savegameId, triggerDay])
+  @@map("game_events")
+}

@@ -1,0 +1,82 @@
+[
+  {
+    "key": "valorian", "name": "Valorian", "group": "northern",
+    "ethos": "bellicose",
+    "traditions": ["warrior_culture", "highland_warriors"],
+    "innovations": [],
+    "description": "A fierce northern people who value martial prowess above all",
+    "bonuses": { "martial": 1, "prowess": 2 },
+    "innovationTree": [
+      { "key": "organized_warfare", "era": 1, "cost": 100, "bonuses": { "levy_size": 0.1 } },
+      { "key": "castle_building", "era": 1, "cost": 100, "bonuses": { "build_speed": 0.1 } },
+      { "key": "heraldry", "era": 1, "cost": 80, "bonuses": { "prestige_gain": 0.1 } },
+      { "key": "advanced_tactics", "era": 2, "cost": 200, "requires": ["organized_warfare"], "bonuses": { "maa_damage": 0.15 } },
+      { "key": "stone_fortifications", "era": 2, "cost": 200, "requires": ["castle_building"], "bonuses": { "fort_level": 1 } },
+      { "key": "standing_armies", "era": 3, "cost": 400, "requires": ["advanced_tactics"], "bonuses": { "maa_cap": 2 } }
+    ]
+  },
+  {
+    "key": "aurelian", "name": "Aurelian", "group": "central",
+    "ethos": "bureaucratic",
+    "traditions": ["imperial_legacy", "diplomatic_courts"],
+    "innovations": [],
+    "description": "Heirs to a great empire, masters of governance and diplomacy",
+    "bonuses": { "diplomacy": 2, "stewardship": 1 },
+    "innovationTree": [
+      { "key": "civil_administration", "era": 1, "cost": 100, "bonuses": { "tax_income": 0.1 } },
+      { "key": "court_life", "era": 1, "cost": 80, "bonuses": { "diplomacy": 1 } },
+      { "key": "codified_laws", "era": 1, "cost": 100, "bonuses": { "vassal_opinion": 5 } },
+      { "key": "feudal_contracts", "era": 2, "cost": 200, "requires": ["codified_laws"], "bonuses": { "vassal_tax": 0.05 } },
+      { "key": "royal_prerogative", "era": 2, "cost": 200, "requires": ["court_life"], "bonuses": { "prestige_gain": 0.2 } },
+      { "key": "imperial_administration", "era": 3, "cost": 400, "requires": ["feudal_contracts"], "bonuses": { "domain_limit": 2 } }
+    ]
+  },
+  {
+    "key": "khaldari", "name": "Khaldari", "group": "desert",
+    "ethos": "communal",
+    "traditions": ["desert_nomads", "horse_lords"],
+    "innovations": [],
+    "description": "Desert dwelling horsemen united by clan bonds",
+    "bonuses": { "martial": 1, "learning": 1, "prowess": 1 },
+    "innovationTree": [
+      { "key": "horse_breeding", "era": 1, "cost": 100, "bonuses": { "cavalry_damage": 0.15 } },
+      { "key": "desert_survival", "era": 1, "cost": 80, "bonuses": { "desert_attrition": -0.5 } },
+      { "key": "trade_routes", "era": 1, "cost": 100, "bonuses": { "tax_income": 0.1 } },
+      { "key": "caravansary", "era": 2, "cost": 200, "requires": ["trade_routes"], "bonuses": { "development_growth": 0.1 } },
+      { "key": "mounted_archery", "era": 2, "cost": 200, "requires": ["horse_breeding"], "bonuses": { "cavalry_pursuit": 0.2 } },
+      { "key": "desert_empire", "era": 3, "cost": 400, "requires": ["caravansary"], "bonuses": { "domain_limit": 1, "tax_income": 0.15 } }
+    ]
+  },
+  {
+    "key": "sylvari", "name": "Sylvari", "group": "forest",
+    "ethos": "spiritual",
+    "traditions": ["forest_folk", "ancient_knowledge"],
+    "innovations": [],
+    "description": "Enigmatic forest dwellers with deep spiritual traditions",
+    "bonuses": { "learning": 2, "intrigue": 1 },
+    "innovationTree": [
+      { "key": "herbalism", "era": 1, "cost": 80, "bonuses": { "health": 0.3 } },
+      { "key": "forest_warfare", "era": 1, "cost": 100, "bonuses": { "forest_advantage": 0.2 } },
+      { "key": "oral_traditions", "era": 1, "cost": 80, "bonuses": { "learning": 1 } },
+      { "key": "druidic_practices", "era": 2, "cost": 200, "requires": ["herbalism"], "bonuses": { "piety_gain": 0.2 } },
+      { "key": "guerrilla_tactics", "era": 2, "cost": 200, "requires": ["forest_warfare"], "bonuses": { "defender_advantage": 0.15 } },
+      { "key": "nature_mastery", "era": 3, "cost": 400, "requires": ["druidic_practices"], "bonuses": { "development_growth": 0.15 } }
+    ]
+  },
+  {
+    "key": "thalassan", "name": "Thalassan", "group": "coastal",
+    "ethos": "mercantile",
+    "traditions": ["seafarers", "merchant_republic"],
+    "innovations": [],
+    "description": "Maritime traders and fierce naval warriors",
+    "bonuses": { "stewardship": 2, "martial": 1 },
+    "innovationTree": [
+      { "key": "shipbuilding", "era": 1, "cost": 100, "bonuses": { "naval_speed": 0.2 } },
+      { "key": "merchant_guilds", "era": 1, "cost": 80, "bonuses": { "tax_income": 0.15 } },
+      { "key": "cartography", "era": 1, "cost": 80, "bonuses": { "development_growth": 0.1 } },
+      { "key": "banking", "era": 2, "cost": 200, "requires": ["merchant_guilds"], "bonuses": { "tax_income": 0.2 } },
+      { "key": "longships", "era": 2, "cost": 200, "requires": ["shipbuilding"], "bonuses": { "coastal_raid": 0.3 } },
+      { "key": "trade_empire", "era": 3, "cost": 400, "requires": ["banking"], "bonuses": { "gold_per_month": 2.0 } }
+    ]
+  }
+]

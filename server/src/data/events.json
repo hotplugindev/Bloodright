@@ -1,0 +1,376 @@
+[
+  {
+    "key": "feast_event",
+    "title": "A Grand Feast",
+    "description": "Your steward suggests holding a lavish feast to improve relations with your vassals.",
+    "type": "character",
+    "trigger": {
+      "conditions": [
+        { "field": "gold", "op": ">=", "value": 50 },
+        { "field": "is_ruler", "op": "==", "value": true }
+      ],
+      "mtth_days": 365
+    },
+    "options": [
+      {
+        "label": "Spare no expense!",
+        "effects": [
+          { "type": "modify_gold", "value": -50 },
+          { "type": "modify_prestige", "value": 100 },
+          { "type": "modify_vassal_opinion", "value": 15, "duration_days": 365 },
+          { "type": "modify_stress", "value": -15 }
+        ]
+      },
+      {
+        "label": "A modest gathering will suffice.",
+        "effects": [
+          { "type": "modify_gold", "value": -15 },
+          { "type": "modify_prestige", "value": 25 },
+          { "type": "modify_vassal_opinion", "value": 5, "duration_days": 180 }
+        ]
+      },
+      {
+        "label": "We cannot afford such frivolities.",
+        "effects": [
+          { "type": "modify_vassal_opinion", "value": -5, "duration_days": 180 },
+          { "type": "modify_stress", "value": 10 }
+        ]
+      }
+    ]
+  },
+  {
+    "key": "illness_event",
+    "title": "A Mysterious Illness",
+    "description": "You wake drenched in sweat, your body wracked with fever. The court physician looks grim.",
+    "type": "character",
+    "trigger": {
+      "conditions": [
+        { "field": "health", "op": "<", "value": 4 }
+      ],
+      "mtth_days": 730
+    },
+    "options": [
+      {
+        "label": "Seek the finest physician in the realm.",
+        "effects": [
+          { "type": "modify_gold", "value": -30 },
+          { "type": "modify_health", "value": 1.5 },
+          { "type": "modify_stress", "value": 15 }
+        ]
+      },
+      {
+        "label": "Pray for divine healing.",
+        "effects": [
+          { "type": "modify_piety", "value": 50 },
+          { "type": "modify_health", "value": 0.5, "chance": 0.5 },
+          { "type": "modify_health", "value": -1.0, "chance": 0.5 }
+        ]
+      },
+      {
+        "label": "Tough it out.",
+        "effects": [
+          { "type": "modify_health", "value": -0.5 },
+          { "type": "add_trait", "value": "brave", "chance": 0.3 }
+        ]
+      }
+    ]
+  },
+  {
+    "key": "ambitious_vassal",
+    "title": "An Ambitious Vassal",
+    "description": "One of your most powerful vassals has been seen gathering support among the nobility. Rumor has it they covet your title.",
+    "type": "realm",
+    "trigger": {
+      "conditions": [
+        { "field": "vassal_count", "op": ">=", "value": 2 },
+        { "field": "is_ruler", "op": "==", "value": true }
+      ],
+      "mtth_days": 540
+    },
+    "options": [
+      {
+        "label": "Offer them a seat on your council.",
+        "effects": [
+          { "type": "modify_vassal_opinion", "value": 20, "target": "vassal", "duration_days": 730 },
+          { "type": "modify_prestige", "value": -25 }
+        ]
+      },
+      {
+        "label": "Have your spymaster investigate.",
+        "effects": [
+          { "type": "start_scheme", "scheme_type": "discover_secrets", "target": "vassal" },
+          { "type": "modify_stress", "value": 10 }
+        ]
+      },
+      {
+        "label": "Imprison them before they act!",
+        "effects": [
+          { "type": "modify_vassal_opinion", "value": -30, "duration_days": 1825 },
+          { "type": "modify_prestige", "value": -50 },
+          { "type": "prevent_faction", "target": "vassal" }
+        ]
+      }
+    ]
+  },
+  {
+    "key": "harvest_bounty",
+    "title": "A Bountiful Harvest",
+    "description": "The gods have smiled upon your lands. This season's harvest exceeds all expectations.",
+    "type": "realm",
+    "trigger": {
+      "conditions": [
+        { "field": "is_ruler", "op": "==", "value": true },
+        { "field": "month", "op": "==", "value": 9 }
+      ],
+      "mtth_days": 1095
+    },
+    "options": [
+      {
+        "label": "Store the surplus for winter.",
+        "effects": [
+          { "type": "modify_gold", "value": 30 },
+          { "type": "modify_development", "value": 0.5 }
+        ]
+      },
+      {
+        "label": "Distribute food to the smallfolk.",
+        "effects": [
+          { "type": "modify_prestige", "value": 50 },
+          { "type": "modify_vassal_opinion", "value": 10, "duration_days": 365 }
+        ]
+      },
+      {
+        "label": "Sell the excess to foreign merchants.",
+        "effects": [
+          { "type": "modify_gold", "value": 60 },
+          { "type": "modify_prestige", "value": -10 }
+        ]
+      }
+    ]
+  },
+  {
+    "key": "romantic_encounter",
+    "title": "A Chance Encounter",
+    "description": "At a recent gathering, you find yourself drawn to a charming noble from a neighboring court.",
+    "type": "character",
+    "trigger": {
+      "conditions": [
+        { "field": "age", "op": ">=", "value": 16 },
+        { "field": "is_alive", "op": "==", "value": true }
+      ],
+      "mtth_days": 1460
+    },
+    "options": [
+      {
+        "label": "Pursue a courtship.",
+        "effects": [
+          { "type": "modify_stress", "value": -20 },
+          { "type": "add_relationship", "rel_type": "lover", "chance": 0.6 },
+          { "type": "modify_diplomacy_xp", "value": 50 }
+        ]
+      },
+      {
+        "label": "Maintain proper decorum.",
+        "effects": [
+          { "type": "modify_prestige", "value": 10 },
+          { "type": "modify_stress", "value": 5 }
+        ]
+      },
+      {
+        "label": "Use the connection for political gain.",
+        "effects": [
+          { "type": "modify_intrigue_xp", "value": 50 },
+          { "type": "modify_prestige", "value": 15 },
+          { "type": "modify_stress", "value": 10 }
+        ]
+      }
+    ]
+  },
+  {
+    "key": "raiders_attack",
+    "title": "Raiders on the Border",
+    "description": "A band of raiders has been spotted pillaging settlements along your border. Your marshal requests permission to act.",
+    "type": "realm",
+    "trigger": {
+      "conditions": [
+        { "field": "is_ruler", "op": "==", "value": true },
+        { "field": "levies", "op": ">=", "value": 100 }
+      ],
+      "mtth_days": 730
+    },
+    "options": [
+      {
+        "label": "Send the full levy to crush them!",
+        "effects": [
+          { "type": "modify_gold", "value": -10 },
+          { "type": "modify_prestige", "value": 30 },
+          { "type": "modify_martial_xp", "value": 75 },
+          { "type": "modify_vassal_opinion", "value": 5, "duration_days": 365 }
+        ]
+      },
+      {
+        "label": "Hire mercenaries to deal with it.",
+        "effects": [
+          { "type": "modify_gold", "value": -40 },
+          { "type": "modify_prestige", "value": 10 }
+        ]
+      },
+      {
+        "label": "Let the local lords handle it.",
+        "effects": [
+          { "type": "modify_prestige", "value": -20 },
+          { "type": "modify_vassal_opinion", "value": -10, "duration_days": 365 }
+        ]
+      }
+    ],
+    "chain": {
+      "next_event": "raiders_aftermath",
+      "delay_days": 30
+    }
+  },
+  {
+    "key": "raiders_aftermath",
+    "title": "Aftermath of the Raids",
+    "description": "The raids have ended, but their impact lingers across your lands.",
+    "type": "realm",
+    "trigger": {
+      "conditions": [
+        { "field": "chain_from", "op": "==", "value": "raiders_attack" }
+      ]
+    },
+    "options": [
+      {
+        "label": "Rebuild and fortify the border.",
+        "effects": [
+          { "type": "modify_gold", "value": -25 },
+          { "type": "modify_development", "value": 0.3 },
+          { "type": "modify_prestige", "value": 20 }
+        ]
+      },
+      {
+        "label": "Accept the losses and move on.",
+        "effects": [
+          { "type": "modify_stress", "value": 15 },
+          { "type": "modify_prestige", "value": -10 }
+        ]
+      }
+    ]
+  },
+  {
+    "key": "scholarly_debate",
+    "title": "A Scholarly Debate",
+    "description": "Two renowned scholars have arrived at your court, locked in a fierce intellectual debate. They seek your judgment.",
+    "type": "character",
+    "trigger": {
+      "conditions": [
+        { "field": "learning", "op": ">=", "value": 8 },
+        { "field": "is_ruler", "op": "==", "value": true }
+      ],
+      "mtth_days": 1095
+    },
+    "options": [
+      {
+        "label": "Side with the traditionalist.",
+        "effects": [
+          { "type": "modify_piety", "value": 30 },
+          { "type": "modify_learning_xp", "value": 80 },
+          { "type": "modify_prestige", "value": 10 }
+        ]
+      },
+      {
+        "label": "Support the reformist.",
+        "effects": [
+          { "type": "modify_learning_xp", "value": 100 },
+          { "type": "modify_innovation_progress", "value": 5 },
+          { "type": "modify_piety", "value": -15 }
+        ]
+      },
+      {
+        "label": "Declare both arguments lack merit.",
+        "effects": [
+          { "type": "modify_prestige", "value": 20 },
+          { "type": "modify_stress", "value": -10 },
+          { "type": "add_trait", "value": "cynical", "chance": 0.2 }
+        ]
+      }
+    ]
+  },
+  {
+    "key": "succession_crisis",
+    "title": "A Question of Succession",
+    "description": "As you grow older, the question of who will inherit your titles has become a source of tension at court.",
+    "type": "character",
+    "trigger": {
+      "conditions": [
+        { "field": "age", "op": ">=", "value": 50 },
+        { "field": "children_count", "op": ">=", "value": 2 },
+        { "field": "is_ruler", "op": "==", "value": true }
+      ],
+      "mtth_days": 1825
+    },
+    "options": [
+      {
+        "label": "Declare your eldest as heir publicly.",
+        "effects": [
+          { "type": "modify_prestige", "value": 30 },
+          { "type": "modify_vassal_opinion", "value": 10, "duration_days": 365 },
+          { "type": "modify_child_opinion", "value": -30, "target": "younger_children" }
+        ]
+      },
+      {
+        "label": "Let them compete for your favor.",
+        "effects": [
+          { "type": "modify_stress", "value": 20 },
+          { "type": "modify_intrigue_xp", "value": 50 }
+        ]
+      },
+      {
+        "label": "Seek counsel from your faith leader.",
+        "effects": [
+          { "type": "modify_piety", "value": 30 },
+          { "type": "modify_stress", "value": -10 }
+        ]
+      }
+    ]
+  },
+  {
+    "key": "pilgrimage_offer",
+    "title": "Call to Pilgrimage",
+    "description": "A holy site of your faith calls to you. The journey would be long but spiritually enriching.",
+    "type": "character",
+    "trigger": {
+      "conditions": [
+        { "field": "piety", "op": ">=", "value": 50 },
+        { "field": "is_ruler", "op": "==", "value": true },
+        { "field": "health", "op": ">=", "value": 3 }
+      ],
+      "mtth_days": 2190
+    },
+    "options": [
+      {
+        "label": "Embark on the pilgrimage.",
+        "effects": [
+          { "type": "modify_gold", "value": -40 },
+          { "type": "modify_piety", "value": 200 },
+          { "type": "modify_stress", "value": -30 },
+          { "type": "modify_health", "value": -0.5 },
+          { "type": "add_trait", "value": "zealous", "chance": 0.3 }
+        ]
+      },
+      {
+        "label": "Send a representative in your stead.",
+        "effects": [
+          { "type": "modify_gold", "value": -20 },
+          { "type": "modify_piety", "value": 50 }
+        ]
+      },
+      {
+        "label": "Decline — duty keeps me here.",
+        "effects": [
+          { "type": "modify_piety", "value": -30 },
+          { "type": "modify_stress", "value": 10 }
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,164 @@
+[
+  {
+    "key": "brave", "name": "Brave", "category": "personality",
+    "modifiers": { "martial": 2, "prowess": 3, "diplomacy": -1 },
+    "opposites": ["craven"], "inheritable": false,
+    "description": "Courageous in the face of danger"
+  },
+  {
+    "key": "craven", "name": "Craven", "category": "personality",
+    "modifiers": { "martial": -2, "prowess": -3, "diplomacy": 1 },
+    "opposites": ["brave"], "inheritable": false,
+    "description": "Tends to flee from danger"
+  },
+  {
+    "key": "ambitious", "name": "Ambitious", "category": "personality",
+    "modifiers": { "stewardship": 2, "intrigue": 1, "stress": 10 },
+    "opposites": ["content"], "inheritable": false,
+    "description": "Driven by an insatiable desire for more"
+  },
+  {
+    "key": "content", "name": "Content", "category": "personality",
+    "modifiers": { "stewardship": -1, "stress": -20 },
+    "opposites": ["ambitious"], "inheritable": false,
+    "description": "Satisfied with what they have"
+  },
+  {
+    "key": "generous", "name": "Generous", "category": "personality",
+    "modifiers": { "diplomacy": 3, "stewardship": -2 },
+    "opposites": ["greedy"], "inheritable": false,
+    "description": "Willing to share wealth freely"
+  },
+  {
+    "key": "greedy", "name": "Greedy", "category": "personality",
+    "modifiers": { "diplomacy": -2, "stewardship": 3 },
+    "opposites": ["generous"], "inheritable": false,
+    "description": "Obsessed with accumulating wealth"
+  },
+  {
+    "key": "just", "name": "Just", "category": "personality",
+    "modifiers": { "diplomacy": 2, "learning": 1, "intrigue": -2 },
+    "opposites": ["arbitrary"], "inheritable": false,
+    "description": "Fair and lawful in all dealings"
+  },
+  {
+    "key": "arbitrary", "name": "Arbitrary", "category": "personality",
+    "modifiers": { "diplomacy": -2, "intrigue": 2, "martial": 1 },
+    "opposites": ["just"], "inheritable": false,
+    "description": "Rules by whim rather than law"
+  },
+  {
+    "key": "zealous", "name": "Zealous", "category": "personality",
+    "modifiers": { "martial": 2, "learning": 1, "diplomacy": -1 },
+    "opposites": ["cynical"], "inheritable": false,
+    "description": "Deeply devoted to their faith"
+  },
+  {
+    "key": "cynical", "name": "Cynical", "category": "personality",
+    "modifiers": { "intrigue": 2, "learning": 1, "diplomacy": -1 },
+    "opposites": ["zealous"], "inheritable": false,
+    "description": "Questions the sincerity of the faithful"
+  },
+  {
+    "key": "patient", "name": "Patient", "category": "personality",
+    "modifiers": { "learning": 2, "diplomacy": 1, "stewardship": 1 },
+    "opposites": ["wrathful"], "inheritable": false,
+    "description": "Calm and measured in temper"
+  },
+  {
+    "key": "wrathful", "name": "Wrathful", "category": "personality",
+    "modifiers": { "martial": 3, "diplomacy": -2, "intrigue": -1 },
+    "opposites": ["patient"], "inheritable": false,
+    "description": "Quick to anger and slow to forgive"
+  },
+  {
+    "key": "diligent", "name": "Diligent", "category": "personality",
+    "modifiers": { "stewardship": 2, "learning": 1, "martial": 1 },
+    "opposites": ["lazy"], "inheritable": false,
+    "description": "Hardworking and dedicated"
+  },
+  {
+    "key": "lazy", "name": "Lazy", "category": "personality",
+    "modifiers": { "stewardship": -2, "martial": -1, "stress": -10 },
+    "opposites": ["diligent"], "inheritable": false,
+    "description": "Avoids effort whenever possible"
+  },
+  {
+    "key": "genius", "name": "Genius", "category": "genetic",
+    "modifiers": { "diplomacy": 3, "martial": 3, "stewardship": 3, "intrigue": 3, "learning": 5 },
+    "opposites": ["dull"], "inheritable": true,
+    "description": "Brilliant beyond measure"
+  },
+  {
+    "key": "intelligent", "name": "Intelligent", "category": "genetic",
+    "modifiers": { "diplomacy": 2, "martial": 1, "stewardship": 2, "intrigue": 2, "learning": 3 },
+    "opposites": ["dull"], "inheritable": true,
+    "description": "Sharp of mind"
+  },
+  {
+    "key": "dull", "name": "Dull", "category": "genetic",
+    "modifiers": { "diplomacy": -2, "stewardship": -2, "learning": -3 },
+    "opposites": ["intelligent", "genius"], "inheritable": true,
+    "description": "Slow to understand"
+  },
+  {
+    "key": "strong", "name": "Strong", "category": "genetic",
+    "modifiers": { "martial": 2, "prowess": 4, "health": 0.5 },
+    "opposites": ["weak"], "inheritable": true,
+    "description": "Physically powerful"
+  },
+  {
+    "key": "weak", "name": "Weak", "category": "genetic",
+    "modifiers": { "martial": -1, "prowess": -3, "health": -0.5 },
+    "opposites": ["strong"], "inheritable": true,
+    "description": "Frail of body"
+  },
+  {
+    "key": "beautiful", "name": "Beautiful", "category": "genetic",
+    "modifiers": { "diplomacy": 3, "fertility": 0.1 },
+    "opposites": ["ugly"], "inheritable": true,
+    "description": "Strikingly attractive"
+  },
+  {
+    "key": "ugly", "name": "Ugly", "category": "genetic",
+    "modifiers": { "diplomacy": -2, "fertility": -0.1 },
+    "opposites": ["beautiful"], "inheritable": true,
+    "description": "Unfortunate in appearance"
+  },
+  {
+    "key": "drunkard", "name": "Drunkard", "category": "lifestyle",
+    "modifiers": { "diplomacy": -1, "stewardship": -2, "stress": -20, "health": -0.5 },
+    "opposites": [], "inheritable": false,
+    "description": "Drowns sorrows in drink"
+  },
+  {
+    "key": "scholar", "name": "Scholar", "category": "education",
+    "modifiers": { "learning": 4, "stewardship": 1 },
+    "opposites": [], "inheritable": false,
+    "description": "Devoted to the pursuit of knowledge"
+  },
+  {
+    "key": "strategist", "name": "Strategist", "category": "education",
+    "modifiers": { "martial": 4, "learning": 1 },
+    "opposites": [], "inheritable": false,
+    "description": "A master of warfare and tactics"
+  },
+  {
+    "key": "administrator", "name": "Administrator", "category": "education",
+    "modifiers": { "stewardship": 4, "diplomacy": 1 },
+    "opposites": [], "inheritable": false,
+    "description": "Skilled in governance and management"
+  },
+  {
+    "key": "schemer", "name": "Schemer", "category": "education",
+    "modifiers": { "intrigue": 4, "diplomacy": -1 },
+    "opposites": [], "inheritable": false,
+    "description": "A natural plotter and manipulator"
+  },
+  {
+    "key": "diplomat", "name": "Diplomat", "category": "education",
+    "modifiers": { "diplomacy": 4, "learning": 1 },
+    "opposites": [], "inheritable": false,
+    "description": "Masterful at negotiation and persuasion"
+  }
+]
